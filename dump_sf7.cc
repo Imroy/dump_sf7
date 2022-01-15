@@ -48,21 +48,7 @@ int main(int argc, char* argv[]) {
 
   auto files = disk.list_directory();
   for (auto file : files) {
-    std::cout << file.filename();
-    switch (file.filetype()) {
-    case SF7::file_type::non_ascii:
-      std::cout << "\tnon-ASCII";
-      break;
-
-    case SF7::file_type::ascii:
-      std::cout << "\tASCII";
-      break;
-
-    case SF7::file_type::hexadecimal:
-      std::cout << "\thexadecimal";
-      break;
-    }
-
+    std::cout << file.filename() << "\t" << SF7::file_type_names[static_cast<uint8_t>(file.filetype())];
     if (file.readonly())
       std::cout << "\tread-only";
     else

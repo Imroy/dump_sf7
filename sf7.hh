@@ -37,19 +37,29 @@ namespace SF7 {
   const int sectors_per_cluster = 4;
   const int cluster_size = sector_size * sectors_per_cluster;
 
-  enum class file_type : uint8_t {
-    non_ascii	= 0,
-    ascii	= 1,
-    hexadecimal = 2,
-  };
+  const std::string file_type_names[3] = { "non-ASCII", "ASCII", "hexadecimal" };
+
 
   class Disk;
 
   class File {
+  public:
+    enum class type : uint8_t {
+      non_ascii		= 0,
+      ascii		= 1,
+      hexadecimal	= 2,
+    };
+
+    std::string filename(void) const;
+    type filetype(void) const;
+    bool readonly(void) const;
+
+    const std::vector<uint8_t> read(void);
+
   private:
     std::string _filename;
     uint8_t _first_cluster;
-    file_type _filetype;
+    type _filetype;
     bool _readonly;
     const Disk *_disk;
 
@@ -57,20 +67,13 @@ namespace SF7 {
 
     enum _file_attribute_flags : uint8_t {
       FILE_ATTR_RO		= 0x80,
-      FILE_ATTR_TYPE_MASK		= 0x0f,
+      FILE_ATTR_TYPE_MASK	= 0x0f,
     };
 
     friend class Disk;
 
-  public:
-    File& operator=(const File& other) = default;
-
-    std::string filename(void) const;
-    file_type filetype(void) const;
-    bool readonly(void) const;
-
-    const std::vector<uint8_t> read(void);
   };
+
 
   class Disk {
   private:

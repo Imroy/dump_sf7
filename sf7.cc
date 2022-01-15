@@ -24,7 +24,7 @@ namespace SF7 {
   File::File(std::string fn, uint8_t fc, uint8_t attr, const Disk* d) :
     _filename(std::move(fn)),
     _first_cluster(fc),
-    _filetype(static_cast<file_type>(attr & FILE_ATTR_TYPE_MASK)),
+    _filetype(static_cast<File::type>(attr & FILE_ATTR_TYPE_MASK)),
     _readonly(attr & FILE_ATTR_RO),
     _disk(d)
   {}
@@ -33,7 +33,7 @@ namespace SF7 {
     return _filename;
   }
 
-  file_type File::filetype(void) const {
+  File::type File::filetype(void) const {
     return _filetype;
   }
 
