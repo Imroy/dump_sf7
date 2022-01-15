@@ -21,8 +21,10 @@
 #include <fstream>
 
 int main(int argc, char* argv[]) {
-  if (argc < 2)
+  if (argc < 2) {
+    std::cerr << argv[0] << " <image.sf7>" << std::endl << std::endl;
     return -1;
+  }
 
   SF7::Disk disk;
   {
