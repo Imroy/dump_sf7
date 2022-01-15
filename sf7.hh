@@ -81,7 +81,7 @@ namespace SF7 {
 
   class Disk {
   private:
-    enum class _disk_structure {
+    enum class _structure {
       disk_info_start		= 0,
       disk_info_size		= sector_size,
 
@@ -109,7 +109,7 @@ namespace SF7 {
     };
 
     const int dir_entry_size = sizeof(_dir_entry);
-    const int max_dir_entries = static_cast<int>(_disk_structure::directory_size) / dir_entry_size;
+    const int max_dir_entries = static_cast<int>(_structure::directory_size) / dir_entry_size;
 
     enum class _fat_entry_flags {
       LAST_CLUSTER_PREFIX		= 0xc0,

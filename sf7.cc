@@ -38,7 +38,7 @@ namespace SF7 {
   }
 
   uint8_t File::_fat_entry(uint8_t cnum) const {
-    return _disk->_data[static_cast<int>(_disk->_disk_structure::FAT_start) + cnum];
+    return _disk->_data[static_cast<int>(_disk->_structure::FAT_start) + cnum];
   }
 
   std::string File::filename(void) const {
@@ -99,7 +99,7 @@ namespace SF7 {
     std::vector<File> files;
     files.reserve(max_dir_entries);
 
-    auto entries = reinterpret_cast<_dir_entry*>(const_cast<unsigned char*>(_data.data()) + static_cast<int>(_disk_structure::directory_start));
+    auto entries = reinterpret_cast<_dir_entry*>(const_cast<unsigned char*>(_data.data()) + static_cast<int>(_structure::directory_start));
     for (int i = 0; i < max_dir_entries; i++) {
       auto entry = entries[i];
       if (entry.filename[0] == 0)
