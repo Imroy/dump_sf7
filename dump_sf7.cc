@@ -42,8 +42,13 @@ int main(int argc, char* argv[]) {
     ifs.close();
   }
 
-  if (disk.is_sys())
+  if (disk.is_sys()) {
     std::cout << "System disk." << std::endl;
+    auto IPL = disk.IPL();
+    std::ofstream ofs("IPL.bin", std::ios_base::out);
+    ofs.write(reinterpret_cast<char*>(IPL.data()), IPL.size());
+    ofs.close();
+  }
   std::cout << "Disk name: " << disk.name() << std::endl;
 
   auto files = disk.list_directory();

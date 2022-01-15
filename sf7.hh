@@ -142,6 +142,8 @@ namespace SF7 {
 
     const std::string name(void) const;
 
+    const std::vector<uint8_t> IPL(void) const;
+
     const std::vector<File> list_directory(void) const;
 
   }; // class Disk

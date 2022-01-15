@@ -97,6 +97,15 @@ namespace SF7 {
 		       static_cast<int>(_structure::name_size));
   }
 
+  const std::vector<uint8_t> Disk::IPL(void) const {
+    std::vector<uint8_t> bytes(static_cast<int>(_structure::IPL_size));
+    memcpy(bytes.data(),
+	   reinterpret_cast<char*>(const_cast<uint8_t*>(_data.data())) + static_cast<int>(_structure::IPL_start),
+	   static_cast<int>(_structure::IPL_size));
+
+    return bytes;
+  }
+
   const std::vector<File> Disk::list_directory() const {
     std::vector<File> files;
     files.reserve(max_dir_entries);
