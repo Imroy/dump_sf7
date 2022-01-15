@@ -42,6 +42,10 @@ int main(int argc, char* argv[]) {
     ifs.close();
   }
 
+  if (disk.is_sys())
+    std::cout << "System disk." << std::endl;
+  std::cout << "Disk name: " << disk.name() << std::endl;
+
   auto files = disk.list_directory();
   for (auto file : files) {
     std::cout << file.filename();

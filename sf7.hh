@@ -127,6 +127,10 @@ namespace SF7 {
 
     void load_data(const uint8_t* data, uint16_t length);
 
+    bool is_sys(void) const;
+
+    const std::string name(void) const;
+
     const std::vector<File> list_directory(void) const;
 
   }; // class Disk

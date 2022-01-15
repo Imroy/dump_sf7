@@ -72,6 +72,17 @@ namespace SF7 {
     memcpy(_data.data() + end, data, length);
   }
 
+  bool Disk::is_sys(void) const {
+    return (_data[0] == 'S')
+      && (_data[1] == 'Y')
+      && (_data[2] == 'S')
+      && (_data[3] == ':');
+  }
+
+  const std::string Disk::name(void) const {
+    return std::string(reinterpret_cast<char*>(const_cast<uint8_t*>(_data.data())) + 4, 28);
+  }
+
   const std::vector<File> Disk::list_directory() const {
     std::vector<File> files;
     files.reserve(max_dir_entries);
