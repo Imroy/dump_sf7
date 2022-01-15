@@ -53,7 +53,20 @@ int main(int argc, char* argv[]) {
 
   auto files = disk.list_directory();
   for (auto file : files) {
-    std::cout << file.filename() << "\t" << SF7::file_type_names[static_cast<uint8_t>(file.filetype())];
+    auto filename = file.filename();
+
+    // Remove spaces at end of the two parts of the filename
+    filename = filename.substr(0, filename.find_last_not_of(" ", 7) + 1)
+      + filename.substr(8, filename.find_last_not_of(" ", 11) - 7);
+
+    // Replace slashes (/) with a double dash (--)
+    for (std::string::size_type pos{}, count{};
+	 filename.npos != (pos = filename.find("/", pos, 1));
+         pos++, ++count) {
+      filename.replace(pos, 1, "--", 2);
+    }
+
+    std::cout << filename << "\t" << SF7::file_type_names[static_cast<uint8_t>(file.filetype())];
     if (file.readonly())
       std::cout << "\tread-only";
     else
@@ -62,7 +75,7 @@ int main(int argc, char* argv[]) {
 
     auto contents = file.read();
     std::ofstream ofs;
-    ofs.open(file.filename(), std::ios_base::out);
+    ofs.open(filename, std::ios_base::out);
     ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
     ofs.close();
   }
