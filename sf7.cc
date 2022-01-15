@@ -21,7 +21,7 @@
 
 namespace SF7 {
 
-  File::File(std::string fn, uint8_t fc, uint8_t attr, Disk* d) :
+  File::File(std::string fn, uint8_t fc, uint8_t attr, const Disk* d) :
     _filename(std::move(fn)),
     _first_cluster(fc),
     _filetype(static_cast<file_type>(attr & FILE_ATTR_TYPE_MASK)),
@@ -72,7 +72,7 @@ namespace SF7 {
     memcpy(_data.data() + end, data, length);
   }
 
-  const std::vector<File> Disk::list_directory() {
+  const std::vector<File> Disk::list_directory() const {
     std::vector<File> files;
     files.reserve(max_dir_entries);
 
@@ -92,7 +92,7 @@ namespace SF7 {
     return files;
   }
 
-  void Disk::_read_sector(uint16_t snum, std::vector<uint8_t>& dest) {
+  void Disk::_read_sector(uint16_t snum, std::vector<uint8_t>& dest) const {
     dest.reserve(dest.size() + sector_size);
 
     uint16_t bnum_start = snum * sector_size;
@@ -100,7 +100,7 @@ namespace SF7 {
       dest.push_back(_data[bnum_start + b]);
   }
 
-  void Disk::_read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) {
+  void Disk::_read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const {
     dest.reserve(dest.size() + cluster_size);
 
     uint16_t snum_start = cnum * sectors_per_cluster;
@@ -108,7 +108,7 @@ namespace SF7 {
       _read_sector(snum_start + s, dest);
   }
 
-  uint8_t Disk::_read_fat_entry(uint8_t cnum) {
+  uint8_t Disk::_read_fat_entry(uint8_t cnum) const {
     return _data[static_cast<int>(_disk_structure::FAT_start) + cnum];
   }
 

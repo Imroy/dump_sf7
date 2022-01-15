@@ -51,9 +51,9 @@ namespace SF7 {
     uint8_t _first_cluster;
     file_type _filetype;
     bool _readonly;
-    Disk *_disk;
+    const Disk *_disk;
 
-    File(std::string fn, uint8_t fc, uint8_t attr, Disk* d);
+    File(std::string fn, uint8_t fc, uint8_t attr, const Disk* d);
 
     enum _file_attribute_flags : uint8_t {
       FILE_ATTR_RO		= 0x80,
@@ -116,9 +116,9 @@ namespace SF7 {
     std::vector<uint8_t> _data;
 
     // Low-level functions
-    void _read_sector(uint16_t snum, std::vector<uint8_t>& dest);
-    void _read_cluster(uint8_t cnum, std::vector<uint8_t>& dest);
-    uint8_t _read_fat_entry(uint8_t cnum);
+    void _read_sector(uint16_t snum, std::vector<uint8_t>& dest) const;
+    void _read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const;
+    uint8_t _read_fat_entry(uint8_t cnum) const;
 
     friend class File;
 
@@ -127,7 +127,7 @@ namespace SF7 {
 
     void load_data(const uint8_t* data, uint16_t length);
 
-    const std::vector<File> list_directory(void);
+    const std::vector<File> list_directory(void) const;
 
   }; // class Disk
 
