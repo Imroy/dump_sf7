@@ -70,6 +70,10 @@ namespace SF7 {
       FILE_ATTR_TYPE_MASK	= 0x0f,
     };
 
+    // Low-level functions
+    void _read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const;
+    uint8_t _fat_entry(uint8_t cnum) const;
+
     friend class Disk;
 
   };
@@ -120,8 +124,6 @@ namespace SF7 {
 
     // Low-level functions
     void _read_sector(uint16_t snum, std::vector<uint8_t>& dest) const;
-    void _read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const;
-    uint8_t _read_fat_entry(uint8_t cnum) const;
 
     friend class File;
 

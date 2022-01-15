@@ -29,6 +29,18 @@ namespace SF7 {
     _disk(d)
   {}
 
+  void File::_read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const {
+    dest.reserve(dest.size() + cluster_size);
+
+    uint16_t snum_start = cnum * sectors_per_cluster;
+    for (uint8_t s = 0; s < sectors_per_cluster; s++)
+      _disk->_read_sector(snum_start + s, dest);
+  }
+
+  uint8_t File::_fat_entry(uint8_t cnum) const {
+    return _disk->_data[static_cast<int>(_disk->_disk_structure::FAT_start) + cnum];
+  }
+
   std::string File::filename(void) const {
     return _filename;
   }
@@ -46,14 +58,14 @@ namespace SF7 {
 
     uint8_t cnum = _first_cluster;
     while (cnum < 160) {
-      auto fat_entry = _disk->_read_fat_entry(cnum);
+      auto fat_entry = _fat_entry(cnum);
       if ((fat_entry & static_cast<uint8_t>(Disk::_fat_entry_flags::LAST_CLUSTER_MASK)) == static_cast<uint8_t>(Disk::_fat_entry_flags::LAST_CLUSTER_PREFIX)) {
 	auto sectors = fat_entry & static_cast<uint8_t>(Disk::_fat_entry_flags::LAST_CLUSTER_NUM_SECTORS_MASK);
 	uint16_t snum_start = cnum * sectors_per_cluster;
 	for (uint16_t i = 0; i < sectors; i++)
 	  _disk->_read_sector(snum_start + i, bytes);
       } else
-	_disk->_read_cluster(cnum, bytes);
+	_read_cluster(cnum, bytes);
 
       cnum = fat_entry;
     }
@@ -109,18 +121,6 @@ namespace SF7 {
     uint16_t bnum_start = snum * sector_size;
     for (uint16_t b = 0; b < sector_size; b++)
       dest.push_back(_data[bnum_start + b]);
-  }
-
-  void Disk::_read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const {
-    dest.reserve(dest.size() + cluster_size);
-
-    uint16_t snum_start = cnum * sectors_per_cluster;
-    for (uint8_t s = 0; s < sectors_per_cluster; s++)
-      _read_sector(snum_start + s, dest);
-  }
-
-  uint8_t Disk::_read_fat_entry(uint8_t cnum) const {
-    return _data[static_cast<int>(_disk_structure::FAT_start) + cnum];
   }
 
 
