@@ -89,11 +89,13 @@ namespace SF7 {
     bool readonly;
   };
 
-  enum _fat_entry_flags {
-    FAT_LAST_CLUSTER_MASK	= 0xc3,
+  enum class _fat_entry_flags {
+    LAST_CLUSTER_PREFIX	= 0xc0,
+    LAST_CLUSTER_MASK	= 0xf0,
+    LAST_CLUSTER_NUM_SECTORS_MASK = 0x0f,
 
-    FAT_RESERVED		= 0xfe,
-    FAT_UNUSED			= 0xff,
+    RESERVED		= 0xfe,
+    UNUSED		= 0xff,
   };
 
   const std::vector<dir_entry> list_directory(const std::vector<uint8_t>& disk);
@@ -103,6 +105,6 @@ namespace SF7 {
   // Low-level functions
   void _read_sector(const std::vector<uint8_t>& disk, uint16_t snum, std::vector<uint8_t>& dest);
   void _read_cluster(const std::vector<uint8_t>& disk, uint8_t cnum, std::vector<uint8_t>& dest);
-  uint8_t _read_fat(const std::vector<uint8_t>& disk, uint8_t cnum);
+  uint8_t _read_fat_entry(const std::vector<uint8_t>& disk, uint8_t cnum);
 
 }; // namespace sf7
