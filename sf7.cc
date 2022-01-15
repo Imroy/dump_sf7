@@ -85,14 +85,16 @@ namespace SF7 {
   }
 
   bool Disk::is_sys(void) const {
-    return (_data[0] == 'S')
-      && (_data[1] == 'Y')
-      && (_data[2] == 'S')
-      && (_data[3] == ':');
+    auto i = static_cast<int>(_structure::id_start);
+    return (_data[i] == 'S')
+      && (_data[i + 1] == 'Y')
+      && (_data[i + 2] == 'S')
+      && (_data[i + 3] == ':');
   }
 
   const std::string Disk::name(void) const {
-    return std::string(reinterpret_cast<char*>(const_cast<uint8_t*>(_data.data())) + 4, 28);
+    return std::string(reinterpret_cast<char*>(const_cast<uint8_t*>(_data.data())) + static_cast<int>(_structure::name_start),
+		       static_cast<int>(_structure::name_size));
   }
 
   const std::vector<File> Disk::list_directory() const {

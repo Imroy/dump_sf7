@@ -82,8 +82,14 @@ namespace SF7 {
   class Disk {
   private:
     enum class _structure {
-      disk_info_start		= 0,
-      disk_info_size		= sector_size,
+      id_start			= 0,
+      id_size			= 4,
+
+      name_start		= 4,
+      name_size			= 28,
+
+      IPL_start			= 32,
+      IPL_size			= sector_size - 32,
 
       _reserved_0_start		= sector_size,
       _reserved_0_size		= 15 * sector_size,
