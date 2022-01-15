@@ -1,0 +1,11 @@
+build
+
+# Object files
+*.o
+
+# XEmacs patterns
+\#*\#
+*~
+
+# Nano patterns
+*.swp
