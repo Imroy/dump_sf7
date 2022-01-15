@@ -24,19 +24,26 @@ int main(int argc, char* argv[]) {
   if (argc < 2)
     return -1;
 
-  std::string filepath = argv[1];
-  std::ifstream ifs(filepath, std::ios::binary);
-  if (!ifs.is_open())
-    return -1;
+  SF7::Disk disk;
+  {
+    std::string filepath = argv[1];
+    std::ifstream ifs(filepath, std::ios::binary);
+    if (!ifs.is_open())
+      return -1;
 
-  std::vector<uint8_t> disk_data(static_cast<int>(SF7::disk_size));
-  ifs.read(reinterpret_cast<char*>(disk_data.data()), static_cast<int>(SF7::disk_size));
-  ifs.close();
+    uint8_t buffer[SF7::track_size * 10];
+    while (ifs.good()) {
+      ifs.read(reinterpret_cast<char*>(buffer), sizeof(buffer));
+      disk.load_data(buffer, ifs.gcount());
+    }
 
-  auto files = SF7::list_directory(disk_data);
+    ifs.close();
+  }
+
+  auto files = disk.list_directory();
   for (auto file : files) {
-    std::cout << file.filename;
-    switch (file.filetype) {
+    std::cout << file.filename();
+    switch (file.filetype()) {
     case SF7::file_type::non_ascii:
       std::cout << "\tnon-ASCII";
       break;
@@ -50,15 +57,15 @@ int main(int argc, char* argv[]) {
       break;
     }
 
-    if (file.readonly)
+    if (file.readonly())
       std::cout << "\tread-only";
     else
       std::cout << "\tread-write";
     std::cout << std::endl;
 
-    auto contents = SF7::read_file(disk_data, file);
+    auto contents = file.read();
     std::ofstream ofs;
-    ofs.open(file.filename, std::ios_base::out);
+    ofs.open(file.filename(), std::ios_base::out);
     ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
     ofs.close();
   }

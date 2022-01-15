@@ -37,74 +37,99 @@ namespace SF7 {
   const int sectors_per_cluster = 4;
   const int cluster_size = sector_size * sectors_per_cluster;
 
-  enum class disk_structure {
-    disk_info_start		= 0,
-    disk_info_size		= sector_size,
-
-    _reserved_0_start		= sector_size,
-    _reserved_0_size		= 15 * sector_size,
-
-    system_programs_start	= track_size,
-    system_programs_size	= 18 * track_size,
-
-    directory_start		= 20 * track_size,
-    directory_size		= 12 * sector_size,
-
-    FAT_start			= (20 * track_size) + (12 * sector_size),
-    FAT_size			= 4 * sector_size,
-
-    user_start			= 21 * track_size,
-    user_size			= 19 * track_size,
-  };
-
-  enum _file_attribute_flags : uint8_t {
-    FILE_ATTR_NON_ASCII		= 0x00,
-    FILE_ATTR_ASCII		= 0x01,
-    FILE_ATTR_HEXADECIMAL	= 0x02,
-    FILE_ATTR_RO		= 0x80,
-
-    FILE_ATTR_TYPE_MASK		= 0x0f,
-  };
-
   enum class file_type : uint8_t {
     non_ascii	= 0,
     ascii	= 1,
     hexadecimal = 2,
   };
 
-  struct _raw_dir_entry {
-    const char filename[12];	// 8.3, including the period
-    uint8_t first_cluster;
-    uint8_t attribute;
-    uint8_t _unused[2];
+  class Disk;
+
+  class File {
+  private:
+    std::string _filename;
+    uint8_t _first_cluster;
+    file_type _filetype;
+    bool _readonly;
+    Disk *_disk;
+
+    File(std::string fn, uint8_t fc, uint8_t attr, Disk* d);
+
+    enum _file_attribute_flags : uint8_t {
+      FILE_ATTR_RO		= 0x80,
+      FILE_ATTR_TYPE_MASK		= 0x0f,
+    };
+
+    friend class Disk;
+
+  public:
+    File& operator=(const File& other) = default;
+
+    std::string filename(void) const;
+    file_type filetype(void) const;
+    bool readonly(void) const;
+
+    const std::vector<uint8_t> read(void);
   };
 
-  const int dir_entry_size = sizeof(_raw_dir_entry);
-  const int max_dir_entries = static_cast<int>(disk_structure::directory_size) / dir_entry_size;
+  class Disk {
+  private:
+    enum class _disk_structure {
+      disk_info_start		= 0,
+      disk_info_size		= sector_size,
 
-  struct dir_entry {
-    std::string filename;
-    uint8_t first_cluster;
-    file_type filetype;
-    bool readonly;
-  };
+      _reserved_0_start		= sector_size,
+      _reserved_0_size		= 15 * sector_size,
 
-  enum class _fat_entry_flags {
-    LAST_CLUSTER_PREFIX	= 0xc0,
-    LAST_CLUSTER_MASK	= 0xf0,
-    LAST_CLUSTER_NUM_SECTORS_MASK = 0x0f,
+      system_programs_start	= track_size,
+      system_programs_size	= 18 * track_size,
 
-    RESERVED		= 0xfe,
-    UNUSED		= 0xff,
-  };
+      directory_start		= 20 * track_size,
+      directory_size		= 12 * sector_size,
 
-  const std::vector<dir_entry> list_directory(const std::vector<uint8_t>& disk);
+      FAT_start			= (20 * track_size) + (12 * sector_size),
+      FAT_size			= 4 * sector_size,
 
-  const std::vector<uint8_t> read_file(const std::vector<uint8_t>& disk, const dir_entry& file);
+      user_start		= 21 * track_size,
+      user_size			= 19 * track_size,
+    };
 
-  // Low-level functions
-  void _read_sector(const std::vector<uint8_t>& disk, uint16_t snum, std::vector<uint8_t>& dest);
-  void _read_cluster(const std::vector<uint8_t>& disk, uint8_t cnum, std::vector<uint8_t>& dest);
-  uint8_t _read_fat_entry(const std::vector<uint8_t>& disk, uint8_t cnum);
+    struct _dir_entry {
+      const char filename[12];	// 8.3, including the period
+      uint8_t first_cluster;
+      uint8_t attribute;
+      uint8_t _unused[2];
+    };
+
+    const int dir_entry_size = sizeof(_dir_entry);
+    const int max_dir_entries = static_cast<int>(_disk_structure::directory_size) / dir_entry_size;
+
+    enum class _fat_entry_flags {
+      LAST_CLUSTER_PREFIX		= 0xc0,
+      LAST_CLUSTER_MASK			= 0xf0,
+      LAST_CLUSTER_NUM_SECTORS_MASK	= 0x0f,
+
+      RESERVED		= 0xfe,
+      UNUSED		= 0xff,
+    };
+
+    std::vector<uint8_t> _data;
+
+    // Low-level functions
+    void _read_sector(uint16_t snum, std::vector<uint8_t>& dest);
+    void _read_cluster(uint8_t cnum, std::vector<uint8_t>& dest);
+    uint8_t _read_fat_entry(uint8_t cnum);
+
+    friend class File;
+
+  public:
+    Disk();
+
+    void load_data(const uint8_t* data, uint16_t length);
+
+    const std::vector<File> list_directory(void);
+
+  }; // class Disk
+
 
 }; // namespace sf7
