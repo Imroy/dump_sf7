@@ -43,13 +43,13 @@ int main(int argc, char* argv[]) {
   }
 
   if (disk.is_sys()) {
-    std::cout << "System disk." << std::endl;
+    std::cout << "System disk: " << disk.name() << std::endl;
     auto IPL = disk.IPL();
     std::ofstream ofs("IPL.bin", std::ios_base::out);
     ofs.write(reinterpret_cast<char*>(IPL.data()), IPL.size());
     ofs.close();
+    std::cout << "Wrote initial program loader to IPL.bin" << std::endl;
   }
-  std::cout << "Disk name: " << disk.name() << std::endl;
 
   auto files = disk.list_directory();
   for (auto file : files) {
