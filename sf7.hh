@@ -95,13 +95,13 @@ namespace SF7 {
       _reserved_0_size		= 15 * sector_size,
 
       system_programs_start	= track_size,
-      system_programs_size	= 18 * track_size,
+      system_programs_size	= 19 * track_size,
 
       directory_start		= 20 * track_size,
       directory_size		= 12 * sector_size,
 
       FAT_start			= (20 * track_size) + (12 * sector_size),
-      FAT_size			= 4 * sector_size,
+      FAT_size			= sector_size,
 
       user_start		= 21 * track_size,
       user_size			= 19 * track_size,
