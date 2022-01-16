@@ -17,6 +17,7 @@
         along with dump_sf7.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "sf7.hh"
+#include "charmaps.hh"
 #include <iostream>
 #include <fstream>
 
@@ -76,7 +77,14 @@ int main(int argc, char* argv[]) {
     auto contents = file.read();
     std::ofstream ofs;
     ofs.open(filename, std::ios_base::out);
-    ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
+
+    if (file.filetype() == SF7::File::type::ascii) {
+      auto utf8 = Sega::convert_utf8_export(contents);
+      ofs.write(reinterpret_cast<char*>(utf8.data()), utf8.size());
+
+    } else
+      ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
+
     ofs.close();
   }
 
