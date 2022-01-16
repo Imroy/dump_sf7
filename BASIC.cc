@@ -106,12 +106,15 @@ namespace BASIC {
 	if (bi == bytes.end())
 	  break;
 	start_of_line = false;
+	is_text = false;
 	continue;
       }
 
       // Ordinary ASCII characters
       if ((*bi >= 32) && (*bi < 127)) {
 	output.push_back(*bi);
+	else if (*bi == '"')
+	  is_text ^= true;
 	continue;
       }
 
