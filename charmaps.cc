@@ -54,6 +54,8 @@ namespace Sega {
   // https://www.smspower.org/Development/SC-3000Font
 
   std::map<uint8_t, std::string> japan_charmap = {
+    { 0x0d, "\x0a" },
+
     { 0x5c, "\u00A5" }, { 0x5f, "\u03C0" },
 
     { 0x80, "\u2502" }, { 0x81, "\u2500" }, { 0x82, "\u2534" }, { 0x83, "\u252c" },
@@ -98,6 +100,8 @@ namespace Sega {
   };
 
   std::map<uint8_t, std::string> export_charmap = {
+    { 0x0d, "\x0a" },
+
     { 0x5c, "\u00A5" }, { 0x5f, "\u03C0" },
 
     { 0x80, "\u2502" }, { 0x81, "\u2500" }, { 0x82, "\u2534" }, { 0x83, "\u252c" },
