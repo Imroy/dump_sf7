@@ -18,6 +18,7 @@
 */
 #include "sf7.hh"
 #include "charmaps.hh"
+#include "BASIC.hh"
 #include <iostream>
 #include <fstream>
 
@@ -81,6 +82,10 @@ int main(int argc, char* argv[]) {
     if (file.filetype() == SF7::File::type::ascii) {
       auto utf8 = Sega::convert_utf8_export(contents);
       ofs.write(reinterpret_cast<char*>(utf8.data()), utf8.size());
+
+    } else if ((file.filetype() == SF7::File::type::non_ascii) && filename.ends_with(".BAS")) {
+      auto text = BASIC::detokenise(contents);
+      ofs.write(reinterpret_cast<char*>(text.data()), text.size());
 
     } else
       ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
