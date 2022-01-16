@@ -159,10 +159,6 @@ namespace BASIC {
       use_funcs = true;
 
       // ?
-      output.push_back('<');
-      _append_hex(output, *bi >> 4);
-      _append_hex(output, *bi & 0x0f);
-      output.push_back('>');
    }
 
     output.shrink_to_fit();
