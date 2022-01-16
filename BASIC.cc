@@ -86,7 +86,7 @@ namespace BASIC {
     std::vector<uint8_t> output;
     output.reserve(bytes.size() * 10);
 
-    bool start_of_line = true, is_text = false;
+    bool start_of_line = true, use_funcs, is_text;
     int lineno = 1;
     for (auto bi = bytes.begin(); bi != bytes.end(); bi++) {
       if (start_of_line) {
@@ -106,6 +106,7 @@ namespace BASIC {
 	if (bi == bytes.end())
 	  break;
 	start_of_line = false;
+	use_funcs = false;
 	is_text = false;
 	continue;
       }
@@ -113,6 +114,8 @@ namespace BASIC {
       // Ordinary ASCII characters
       if ((*bi >= 32) && (*bi < 127)) {
 	output.push_back(*bi);
+	if (*bi == ':')
+	  use_funcs = false;
 	else if (*bi == '"')
 	  is_text ^= true;
 	continue;
@@ -136,10 +139,22 @@ namespace BASIC {
 	continue;
       }
 
+      if (use_funcs) {
+	if (funcs.contains(*bi)) {
+	  append_string_to_bytes(output, funcs[*bi]);
+	  continue;
+	}
+      }
       if (tokens.contains(*bi)) {
-	append_string_to_bytes(output, tokens[*bi] + " ");
+	append_string_to_bytes(output, tokens[*bi]);
+
+	// REM
+	if (*bi == 0x90)
+	  is_text = true;
+
 	continue;
       }
+      use_funcs = true;
 
       // ?
       output.push_back('<');
