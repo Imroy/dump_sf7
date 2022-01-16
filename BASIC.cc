@@ -87,24 +87,27 @@ namespace BASIC {
     output.reserve(bytes.size() * 10);
 
     bool start_of_line = true, use_funcs, is_text;
-    int lineno = 1;
     for (auto bi = bytes.begin(); bi != bytes.end(); bi++) {
       if (start_of_line) {
-	append_string_to_bytes(output, std::to_string(lineno * 10) + " ");
+	// Eat five bytes of binary data at the start of each line
+	bi++;
+	if (bi == bytes.end())
+	  break;
+	// Second and third bytes are the line number
+	int lineno = *bi;
+	bi++;
+	if (bi == bytes.end())
+	  break;
 
-	// Eat five bytes of unnecessary data at the start of each line
+	lineno |= (*bi) << 8;
 	bi++;
 	if (bi == bytes.end())
 	  break;
 	bi++;
 	if (bi == bytes.end())
 	  break;
-	bi++;
-	if (bi == bytes.end())
-	  break;
-	bi++;
-	if (bi == bytes.end())
-	  break;
+	append_string_to_bytes(output, std::to_string(lineno) + " ");
+
 	start_of_line = false;
 	use_funcs = false;
 	is_text = false;
@@ -126,7 +129,6 @@ namespace BASIC {
 	output.push_back('\x0a');
 	start_of_line = true;
 	is_text = false;
-	lineno++;
 	continue;
       }
 
