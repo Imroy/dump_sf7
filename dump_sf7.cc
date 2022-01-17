@@ -83,7 +83,8 @@ int main(int argc, char* argv[]) {
       auto utf8 = Sega::convert_utf8_export(contents);
       ofs.write(reinterpret_cast<char*>(utf8.data()), utf8.size());
 
-    } else if ((file.filetype() == SF7::File::type::non_ascii) && filename.ends_with(".BAS")) {
+    } else if ((file.filetype() == SF7::File::type::non_ascii)
+	       && (filename.size() >= 4) && (filename.substr(filename.size() - 4, 4) == ".BAS")) {
       auto text = BASIC::detokenise(contents);
       ofs.write(reinterpret_cast<char*>(text.data()), text.size());
 

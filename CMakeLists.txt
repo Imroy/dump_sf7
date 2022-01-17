@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(dump_sf7)
 
-set (CMAKE_CXX_STANDARD 20)
+set (CMAKE_CXX_STANDARD 11)
 set(COMMON_FLAGS "-g -Wall -fopenmp -finput-charset=UTF-8 -Wformat -Wformat-security -Werror=format-security -D_FORTIFY_SOURCE=2 -fstack-protector --param ssp-buffer-size=4 -fPIE -pie")
 
 # LTO

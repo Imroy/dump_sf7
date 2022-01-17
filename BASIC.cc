@@ -133,7 +133,7 @@ namespace BASIC {
       }
 
       if (is_text) {
-	if (Sega::export_charmap.contains(*bi)) {
+	if (Sega::export_charmap.find(*bi) != Sega::export_charmap.end()) {
 	  append_string_to_bytes(output, Sega::export_charmap[*bi]);
 	  continue;
 	}
@@ -142,12 +142,12 @@ namespace BASIC {
       }
 
       if (use_funcs) {
-	if (funcs.contains(*bi)) {
+	if (funcs.find(*bi) != funcs.end()) {
 	  append_string_to_bytes(output, funcs[*bi]);
 	  continue;
 	}
       }
-      if (tokens.contains(*bi)) {
+      if (tokens.find(*bi) != tokens.end()) {
 	append_string_to_bytes(output, tokens[*bi]);
 
 	// REM

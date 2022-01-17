@@ -30,7 +30,7 @@ namespace Sega {
     dest.reserve(source.size() * 3);
 
     for (auto byte : source) {
-      if (map.contains(byte)) {
+      if (map.find(byte) != map.end()) {
 	append_string_to_bytes(dest, map[byte]);
 	continue;
       }
