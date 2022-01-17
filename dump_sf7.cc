@@ -73,24 +73,24 @@ int main(int argc, char* argv[]) {
       std::cout << "\tread-only";
     else
       std::cout << "\tread-write";
-    std::cout << std::endl;
 
     auto contents = file.read();
-    std::ofstream ofs;
-    ofs.open(filename, std::ios_base::out);
 
     if (file.filetype() == SF7::File::type::ascii) {
-      auto utf8 = Sega::convert_utf8_export(contents);
-      ofs.write(reinterpret_cast<char*>(utf8.data()), utf8.size());
+      std::cout << "\t[Sega text]";
+      contents = Sega::convert_utf8_export(contents);
 
     } else if ((file.filetype() == SF7::File::type::non_ascii)
 	       && (filename.size() >= 4) && (filename.substr(filename.size() - 4, 4) == ".BAS")) {
-      auto text = BASIC::detokenise(contents);
-      ofs.write(reinterpret_cast<char*>(text.data()), text.size());
+      std::cout << "\t[BASIC]";
+      contents = BASIC::detokenise(contents);
 
-    } else
-      ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
+    }
+    std::cout << std::endl;
 
+    std::ofstream ofs;
+    ofs.open(filename, std::ios_base::out);
+    ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
     ofs.close();
   }
 
