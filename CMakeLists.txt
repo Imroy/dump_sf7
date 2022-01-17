@@ -26,3 +26,7 @@ add_executable(dump_sf7
 #)
 #target_link_libraries(dump_sf7
 #)
+
+install(TARGETS dump_sf7
+        DESTINATION /usr/local/bin
+)
