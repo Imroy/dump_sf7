@@ -18,6 +18,7 @@
 */
 #include "sf7.hh"
 #include <string.h>
+#include <unordered_set>
 
 namespace SF7 {
 
@@ -55,9 +56,16 @@ namespace SF7 {
 
   const std::vector<uint8_t> File::read(void) {
     std::vector<uint8_t> bytes;
+    std::unordered_set<uint8_t> visited_clusters;
 
     uint8_t cnum = _first_cluster;
     while (cnum < 160) {
+      if (visited_clusters.find(cnum) != visited_clusters.end()) {
+	std::cerr << "FAT loop detected when reading file \"" << _filename << "\"." << std::endl;
+	return bytes;
+      }
+      visited_clusters.insert(cnum);
+
       auto fat_entry = _fat_entry(cnum);
       if ((fat_entry & static_cast<uint8_t>(Disk::_fat_entry_flags::LAST_CLUSTER_MASK)) == static_cast<uint8_t>(Disk::_fat_entry_flags::LAST_CLUSTER_PREFIX)) {
 	auto sectors = fat_entry & static_cast<uint8_t>(Disk::_fat_entry_flags::LAST_CLUSTER_NUM_SECTORS_MASK);
