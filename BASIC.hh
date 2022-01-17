@@ -19,12 +19,12 @@
 #pragma once
 
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 namespace BASIC {
 
-  extern std::map<uint8_t, std::string> tokens, funcs;
+  extern std::unordered_map<uint8_t, std::string> tokens, funcs;
 
   std::vector<uint8_t> detokenise(const std::vector<uint8_t> bytes);
 

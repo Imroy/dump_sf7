@@ -20,7 +20,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <stdint.h>
 
 // Utility function
@@ -34,7 +34,7 @@ namespace Sega {
   //! Convert 8-bit text to UTF-8 encoded text using the 'export' SC-3000 character set
   std::vector<uint8_t> convert_utf8_export(const std::vector<uint8_t>& source);
 
-  extern std::map<uint8_t, std::string> japan_charmap;
-  extern std::map<uint8_t, std::string> export_charmap;
+  extern std::unordered_map<uint8_t, std::string> japan_charmap;
+  extern std::unordered_map<uint8_t, std::string> export_charmap;
 
 }; // namespace Sega

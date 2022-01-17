@@ -19,7 +19,7 @@
 #include "BASIC.hh"
 #include "charmaps.hh"
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <stdint.h>
 
@@ -28,7 +28,7 @@ namespace BASIC {
   // Extracted from hex dumps of Sega SC-3000 BASIC Level 3 (cartridge)
   // and Sega SC-3000 Disk BASIC v1.1p (floppy)
 
-  std::map<uint8_t, std::string> tokens = {
+  std::unordered_map<uint8_t, std::string> tokens = {
     { 0x81, "INPUT$" }, { 0x82, "LIST" }, { 0x83, "LLIST" },
     { 0x84, "AUTO" }, { 0x85, "DELETE" }, { 0x86, "RUN" }, { 0x87, "CONT" },
     { 0x88, "LOAD" }, { 0x89, "SAVE" }, { 0x8a, "VERIFY" }, { 0x8b, "NEW" },
@@ -60,7 +60,7 @@ namespace BASIC {
     { 0xe4, "TAB" }, { 0xe5, "SPC" }, { 0xe7, "OUTPUT" },
   };
 
-  std::map<uint8_t, std::string> funcs = {
+  std::unordered_map<uint8_t, std::string> funcs = {
     { 0x80, "ABS" }, { 0x81, "RND" }, { 0x82, "SIN" }, { 0x83, "COS" },
     { 0x84, "TAN" }, { 0x85, "ASN" }, { 0x86, "ACS" }, { 0x87, "ATN" },
     { 0x88, "LOG" }, { 0x89, "LGT" }, { 0x8a, "LTW" }, { 0x8b, "EXP" },

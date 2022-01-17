@@ -25,7 +25,7 @@ void append_string_to_bytes(std::vector<uint8_t>& bytes, const std::string& str)
 
 namespace Sega {
 
-  static std::vector<uint8_t> convert_utf8(const std::vector<uint8_t>& source, std::map<uint8_t, std::string>& map) {
+  static std::vector<uint8_t> convert_utf8(const std::vector<uint8_t>& source, std::unordered_map<uint8_t, std::string>& map) {
     std::vector<uint8_t> dest;
     dest.reserve(source.size() * 3);
 
@@ -53,7 +53,7 @@ namespace Sega {
   // https://en.wikipedia.org/wiki/Sega_SC-3000_character_set
   // https://www.smspower.org/Development/SC-3000Font
 
-  std::map<uint8_t, std::string> japan_charmap = {
+  std::unordered_map<uint8_t, std::string> japan_charmap = {
     { 0x0d, "\x0a" },
 
     { 0x5c, "\u00A5" }, { 0x5f, "\u03C0" },
@@ -99,7 +99,7 @@ namespace Sega {
     { 0xfc, "\ufffd" }, { 0xfd, "\U0001fbc5" }, { 0xfe, "\u00f7" },
   };
 
-  std::map<uint8_t, std::string> export_charmap = {
+  std::unordered_map<uint8_t, std::string> export_charmap = {
     { 0x0d, "\x0a" },
 
     { 0x5c, "\u00A5" }, { 0x5f, "\u03C0" },
