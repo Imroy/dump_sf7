@@ -88,6 +88,9 @@ namespace BASIC {
 
     bool start_of_line = true, use_funcs, is_text;
     for (auto bi = bytes.begin(); bi != bytes.end(); bi++) {
+      if (*bi == 0)
+	break;
+
       if (start_of_line) {
 	// Eat five bytes of binary data at the start of each line
 	bi++;
