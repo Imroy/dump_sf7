@@ -150,6 +150,8 @@ namespace BASIC {
 	  continue;
 	}
       }
+      use_funcs = true;
+
       if (tokens.find(*bi) != tokens.end()) {
 	append_string_to_bytes(output, tokens[*bi]);
 
@@ -159,7 +161,6 @@ namespace BASIC {
 
 	continue;
       }
-      use_funcs = true;
 
       // ?
    }
