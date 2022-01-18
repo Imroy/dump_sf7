@@ -27,6 +27,7 @@
 void usage(std::string progname) {
   std::cerr << progname << " [options] <image.sf7>" << std::endl << std::endl;
   std::cerr << "Options:" << std::endl;
+  std::cerr << "\t-j\tUse Japanese character map when converting text to UTF-8." << std::endl;
   std::cerr << "\t-r\tRaw output. Files are dumped as in the image with no" << std::endl
 	    << "\t\tSega => UTF-8 conversion or BASIC detokenisation." << std::endl;
   std::cerr << "\t-b\tBASIC detokenisation of all non-ASCII files, not just" << std::endl
@@ -35,11 +36,15 @@ void usage(std::string progname) {
 }
 
 int main(int argc, char* argv[]) {
-  bool raw = false, all_basic = false;
+  bool raw = false, all_basic = false, use_japanese = false;
   {
     int opt;
-    while ((opt = getopt(argc, argv, "rb")) != -1) {
+    while ((opt = getopt(argc, argv, "jrb")) != -1) {
       switch (opt) {
+      case 'j':
+	use_japanese = true;
+	break;
+
       case 'r':
 	raw = true;
 	break;
@@ -109,7 +114,10 @@ int main(int argc, char* argv[]) {
     if (!raw) {
       if (file.filetype() == SF7::File::type::ascii) {
 	std::cout << "\t[Sega text]";
-	contents = Sega::convert_utf8_export(contents);
+	if (use_japanese)
+	  contents = Sega::convert_utf8_japan(contents);
+	else
+	  contents = Sega::convert_utf8_export(contents);
 
       } else if ((file.filetype() == SF7::File::type::non_ascii)
 		 && (all_basic
@@ -117,7 +125,7 @@ int main(int argc, char* argv[]) {
 		     )
 		 ) {
 	std::cout << "\t[BASIC]";
-	contents = BASIC::detokenise(contents);
+	contents = BASIC::detokenise(contents, use_japanese ? Sega::japan_charmap : Sega::export_charmap);
 
       }
     }

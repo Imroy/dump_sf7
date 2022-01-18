@@ -22,17 +22,19 @@ Just use CMake and make in a `build` directory.
 
 ## Command line usage
 
-The program takes a single argument; the name of a floppy disc image. It also has two options.
+The program takes a single argument; the name of a floppy disc image. It also has three options.
 
-    dump_sf7 [-r|-b] <dump.sf7>
+    dump_sf7 [-j|-r|-b] <dump.sf7>
 
 Files are dumped to the current directory i.e where the program is run from.
 
-- Files marked as type 'ASCII' are converted from the [Sega SC-3000 character set](https://en.wikipedia.org/wiki/Sega_SC-3000_character_set) (export version only for now) to UTF-8. Note that some characters have no equivalent in Unicode however.
+- Files marked as type 'ASCII' are converted from the [Sega SC-3000 character set](https://en.wikipedia.org/wiki/Sega_SC-3000_character_set) ('export' version by default) to UTF-8. Note that some characters have no equivalent in Unicode however.
 - Files marked as type 'non-ASCII' and having a filename ending in `.BAS` are detokenised as BASIC source. Any text is also converted from the Sega SC-3000 character set.
 - Files marked as type 'HEX' are dumped as-is.
 
 ### Options
+
+The `-j` option causes the Japanese character set to be used when converting text to UTF-8. The 'export' character set is used by default.
 
 The `-r` option forces raw output. File data is copied exactly as it is from the image. None of the above conversions are performed.
 

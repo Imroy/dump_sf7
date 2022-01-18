@@ -82,7 +82,7 @@ namespace BASIC {
       bytes.push_back(0x61 + nibble - 10);
   }
 
-  std::vector<uint8_t> detokenise(const std::vector<uint8_t> bytes) {
+  std::vector<uint8_t> detokenise(const std::vector<uint8_t> bytes, const std::unordered_map<uint8_t, std::string>& charmap) {
     std::vector<uint8_t> output;
     output.reserve(bytes.size() * 10);
 
@@ -136,8 +136,9 @@ namespace BASIC {
       }
 
       if (is_text) {
-	if (Sega::export_charmap.find(*bi) != Sega::export_charmap.end()) {
-	  append_string_to_bytes(output, Sega::export_charmap[*bi]);
+	auto repl = charmap.find(*bi);
+	if (repl != charmap.end()) {
+	  append_string_to_bytes(output, repl->second);
 	  continue;
 	}
 	output.push_back(*bi);
