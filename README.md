@@ -26,10 +26,16 @@ The program takes a single argument; the name of a floppy disc image. It also ha
 
     dump_sf7 [-r|-b] <dump.sf7>
 
-The `-r` option forces raw output. File data is copied exactly as it is from the image. No conversion from the Sega character set to UTF-8 is performed on text, neither is BASIC detokenisation.
+Files are dumped to the current directory i.e where the program is run from.
 
-The `-b` option forces BASIC detokenisation on all files marked 'non-ASCII'. Normally the filename also has to end with '.BAS' for detokenisation to be performed.
+- Files marked as type 'ASCII' are converted from the [Sega SC-3000 character set](https://en.wikipedia.org/wiki/Sega_SC-3000_character_set) (export version only for now) to UTF-8. Note that some characters have no equivalent in Unicode however.
+- Files marked as type 'non-ASCII' and having a filename ending in `.BAS` are detokenised as BASIC source. Any text is also converted from the Sega SC-3000 character set.
+- Files marked as type 'HEX' are dumped as-is.
+
+### Options
+
+The `-r` option forces raw output. File data is copied exactly as it is from the image. None of the above conversions are performed.
+
+The `-b` option forces BASIC detokenisation on all files marked 'non-ASCII', not just those with a filename ending with `.BAS`.
 
 If both options are given (either as `-r -b` or `-rb`), only raw output takes place.
-
-Files are dumped to the current directory i.e where the program is run from.
