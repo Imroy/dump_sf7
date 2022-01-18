@@ -21,16 +21,45 @@
 #include "BASIC.hh"
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
+
+void usage(std::string progname) {
+  std::cerr << progname << " [options] <image.sf7>" << std::endl << std::endl;
+  std::cerr << "Options:" << std::endl;
+  std::cerr << "\t-r\tRaw output. Files are dumped as in the image with no" << std::endl
+	    << "\t\tSega => UTF-8 conversion or BASIC detokenisation." << std::endl;
+  std::cerr << "\t-b\tBASIC detokenisation of all non-ASCII files, not just" << std::endl
+	    << "\t\tones named *.BAS." << std::endl;
+  std::cerr << std::endl;
+}
 
 int main(int argc, char* argv[]) {
-  if (argc < 2) {
-    std::cerr << argv[0] << " <image.sf7>" << std::endl << std::endl;
+  bool raw = false, all_basic = false;
+  {
+    int opt;
+    while ((opt = getopt(argc, argv, "rb")) != -1) {
+      switch (opt) {
+      case 'r':
+	raw = true;
+	break;
+
+      case 'b':
+	all_basic = true;
+	break;
+
+      default:
+	break;
+      }
+    }
+  }
+  if (optind >= argc) {
+    usage(argv[0]);
     return -1;
   }
 
   SF7::Disk disk;
   {
-    std::string filepath = argv[1];
+    std::string filepath = argv[optind];
     std::ifstream ifs(filepath, std::ios::binary);
     if (!ifs.is_open())
       return -1;
@@ -76,15 +105,20 @@ int main(int argc, char* argv[]) {
 
     auto contents = file.read();
 
-    if (file.filetype() == SF7::File::type::ascii) {
-      std::cout << "\t[Sega text]";
-      contents = Sega::convert_utf8_export(contents);
+    if (!raw) {
+      if (file.filetype() == SF7::File::type::ascii) {
+	std::cout << "\t[Sega text]";
+	contents = Sega::convert_utf8_export(contents);
 
-    } else if ((file.filetype() == SF7::File::type::non_ascii)
-	       && (filename.size() >= 4) && (filename.substr(filename.size() - 4, 4) == ".BAS")) {
-      std::cout << "\t[BASIC]";
-      contents = BASIC::detokenise(contents);
+      } else if ((file.filetype() == SF7::File::type::non_ascii)
+		 && (all_basic
+		     || ((filename.size() >= 4) && (filename.substr(filename.size() - 4, 4) == ".BAS"))
+		     )
+		 ) {
+	std::cout << "\t[BASIC]";
+	contents = BASIC::detokenise(contents);
 
+      }
     }
     std::cout << std::endl;
 
