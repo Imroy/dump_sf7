@@ -22,6 +22,7 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
+#include <sys/stat.h>
 
 void usage(std::string progname) {
   std::cerr << progname << " [options] <image.sf7>" << std::endl << std::endl;
@@ -126,6 +127,14 @@ int main(int argc, char* argv[]) {
     ofs.open(filename, std::ios_base::out);
     ofs.write(reinterpret_cast<char*>(contents.data()), contents.size());
     ofs.close();
+
+    if (file.readonly()) {
+      struct stat stats;
+      if (stat(filename.c_str(), &stats) == 0) {
+	stats.st_mode &= ~(S_IWUSR | S_IWGRP | S_IWOTH);
+	chmod(filename.c_str(), stats.st_mode);
+      }
+    }
   }
 
   return 0;
