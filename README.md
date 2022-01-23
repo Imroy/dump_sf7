@@ -22,9 +22,9 @@ Just use CMake and make in a `build` directory.
 
 ## Command line usage
 
-The program takes a single argument; the name of a floppy disc image. It also has three options.
+The program takes a single argument; the name of a floppy disc image. It also has four options.
 
-    dump_sf7 [-j|-r|-b] <dump.sf7>
+    dump_sf7 [-l|-j|-r|-b] <dump.sf7>
 
 Files are dumped to the current directory i.e where the program is run from.
 
@@ -34,10 +34,12 @@ Files are dumped to the current directory i.e where the program is run from.
 
 ### Options
 
+The `-l` option causes only the files to be listed. No dumping of contents is performed.
+
 The `-j` option causes the Japanese character set to be used when converting text to UTF-8. The 'export' character set is used by default.
 
 The `-r` option forces raw output. File data is copied exactly as it is from the image. None of the above conversions are performed.
 
 The `-b` option forces BASIC detokenisation on all files marked 'non-ASCII', not just those with a filename ending with `.BAS`.
 
-If both options are given (either as `-r -b` or `-rb`), only raw output takes place.
+If both the last two options are given (either as `-r -b` or `-rb`), only raw output takes place.

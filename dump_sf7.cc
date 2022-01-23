@@ -36,11 +36,15 @@ void usage(std::string progname) {
 }
 
 int main(int argc, char* argv[]) {
-  bool raw = false, all_basic = false, use_japanese = false;
+  bool only_list = false, use_japanese = false, raw = false, all_basic = false;
   {
     int opt;
-    while ((opt = getopt(argc, argv, "jrb")) != -1) {
+    while ((opt = getopt(argc, argv, "ljrb")) != -1) {
       switch (opt) {
+      case 'l':
+	only_list = true;
+	break;
+
       case 'j':
 	use_japanese = true;
 	break;
@@ -108,6 +112,11 @@ int main(int argc, char* argv[]) {
       std::cout << "\tread-only";
     else
       std::cout << "\tread-write";
+
+    if (only_list) {
+      std::cout << std::endl;
+      continue;
+    }
 
     auto contents = file.read();
 
