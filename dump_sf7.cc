@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
   for (int i = optind + 1; i < argc; i++)
     wildcards[i - optind - 1] = argv[i];
 
-  auto files = disk.list_directory();
+  auto files = disk.list_directory(use_japanese ? Sega::japan_charmap : Sega::export_charmap);
   for (auto file : files) {
     auto filename = file.filename();
 

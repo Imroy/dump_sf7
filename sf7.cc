@@ -17,6 +17,7 @@
         along with dump_sf7.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "sf7.hh"
+#include "charmaps.hh"
 #include <string.h>
 #include <unordered_set>
 
@@ -114,7 +115,7 @@ namespace SF7 {
     return bytes;
   }
 
-  const std::vector<File> Disk::list_directory() const {
+  const std::vector<File> Disk::list_directory(std::unordered_map<uint8_t, std::string>& charmap) const {
     std::vector<File> files;
     files.reserve(max_dir_entries);
 
@@ -124,7 +125,11 @@ namespace SF7 {
       if (entry.filename[0] == 0)
 	continue;
 
-      File file(std::string(entry.filename, 12),
+      std::vector<uint8_t> sega_filename(12);
+      memcpy(sega_filename.data(), entry.filename, 12);
+      auto utf8_filename = Sega::convert_utf8(sega_filename, charmap);
+
+      File file(std::string(reinterpret_cast<char*>(utf8_filename.data()), utf8_filename.size()),
 		entry.first_cluster,
 		entry.attribute,
 		this);

@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <stdint.h>
 
 namespace SF7 {
@@ -144,7 +145,7 @@ namespace SF7 {
 
     const std::vector<uint8_t> IPL(void) const;
 
-    const std::vector<File> list_directory(void) const;
+    const std::vector<File> list_directory(std::unordered_map<uint8_t, std::string>& charmap) const;
 
   }; // class Disk
 
