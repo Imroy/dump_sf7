@@ -24,13 +24,15 @@ Just use CMake and make in a `build` directory.
 
 The program takes a single argument; the name of a floppy disc image. It also has four options.
 
-    dump_sf7 [-l|-j|-r|-b] <dump.sf7>
+    dump_sf7 [options] <dump.sf7> [filenames or wildcards...]
 
 Files are dumped to the current directory i.e where the program is run from.
 
 - Files marked as type 'ASCII' are converted from the [Sega SC-3000 character set](https://en.wikipedia.org/wiki/Sega_SC-3000_character_set) ('export' version by default) to UTF-8. Note that some characters have no equivalent in Unicode however.
 - Files marked as type 'non-ASCII' and having a filename ending in `.BAS` are detokenised as BASIC source. Any text is also converted from the Sega SC-3000 character set.
 - Files marked as type 'HEX' are dumped as-is.
+
+If one or more filenames or wildcards are provided after the image filename, only files matching any of them will be processed.
 
 ### Options
 
