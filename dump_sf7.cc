@@ -19,13 +19,14 @@
 #include "sf7.hh"
 #include "charmaps.hh"
 #include "BASIC.hh"
+#include "wildcard.hh"
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
 #include <sys/stat.h>
 
 void usage(std::string progname) {
-  std::cerr << progname << " [options] <image.sf7>" << std::endl << std::endl;
+  std::cerr << progname << " [options] <image.sf7> [filenames or wildcards...]" << std::endl << std::endl;
   std::cerr << "Options:" << std::endl;
   std::cerr << "\t-l\tList filenames. No extraction is performed." << std::endl;
   std::cerr << "\t-j\tUse Japanese character map when converting text to UTF-8." << std::endl;
@@ -33,6 +34,9 @@ void usage(std::string progname) {
 	    << "\t\tSega => UTF-8 conversion or BASIC detokenisation." << std::endl;
   std::cerr << "\t-b\tBASIC detokenisation of all non-ASCII files, not just" << std::endl
 	    << "\t\tones named *.BAS." << std::endl;
+  std::cerr << std::endl;
+  std::cerr << "\tIf file names or wildcards are listed, only matching" << std::endl
+	    << "\tfiles will be processed." << std::endl;
   std::cerr << std::endl;
 }
 
@@ -93,6 +97,11 @@ int main(int argc, char* argv[]) {
     std::cout << "Wrote initial program loader to IPL.bin" << std::endl;
   }
 
+  int num_wildcards = argc - optind - 1;
+  std::string wildcards[num_wildcards];
+  for (int i = optind + 1; i < argc; i++)
+    wildcards[i - optind - 1] = argv[i];
+
   auto files = disk.list_directory();
   for (auto file : files) {
     auto filename = file.filename();
@@ -100,6 +109,17 @@ int main(int argc, char* argv[]) {
     // Remove spaces at end of the two parts of the filename
     filename = filename.substr(0, filename.find_last_not_of(" ", 7) + 1)
       + filename.substr(8, filename.find_last_not_of(" ", 11) - 7);
+
+    if (num_wildcards > 0) {
+      bool matches = false;
+      for (int i = 0; i < num_wildcards; i++)
+	if (strmatch(filename, wildcards[i])) {
+	  matches = true;
+	  break;
+	}
+      if (!matches)
+	continue;
+    }
 
     // Replace slashes (/) with a double dash (--)
     for (std::string::size_type pos{}, count{};
