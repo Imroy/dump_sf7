@@ -27,6 +27,7 @@
 void usage(std::string progname) {
   std::cerr << progname << " [options] <image.sf7>" << std::endl << std::endl;
   std::cerr << "Options:" << std::endl;
+  std::cerr << "\t-l\tList filenames. No extraction is performed." << std::endl;
   std::cerr << "\t-j\tUse Japanese character map when converting text to UTF-8." << std::endl;
   std::cerr << "\t-r\tRaw output. Files are dumped as in the image with no" << std::endl
 	    << "\t\tSega => UTF-8 conversion or BASIC detokenisation." << std::endl;
