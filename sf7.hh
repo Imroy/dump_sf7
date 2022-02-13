@@ -51,6 +51,7 @@ namespace SF7 {
       hexadecimal	= 2,
     };
 
+    std::string raw_filename(void) const;
     std::string filename(void) const;
     type filetype(void) const;
     bool readonly(void) const;
@@ -58,13 +59,13 @@ namespace SF7 {
     const std::vector<uint8_t> read(void);
 
   private:
-    std::string _filename;
+    std::string _raw_filename, _filename;
     uint8_t _first_cluster;
     type _filetype;
     bool _readonly;
     const Disk *_disk;
 
-    File(std::string fn, uint8_t fc, uint8_t attr, const Disk* d);
+    File(std::string rfn, std::string fn, uint8_t fc, uint8_t attr, const Disk* d);
 
     enum _file_attribute_flags : uint8_t {
       FILE_ATTR_RO		= 0x80,

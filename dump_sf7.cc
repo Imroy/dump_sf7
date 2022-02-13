@@ -106,10 +106,6 @@ int main(int argc, char* argv[]) {
   for (auto file : files) {
     auto filename = file.filename();
 
-    // Remove spaces at end of the two parts of the filename
-    filename = filename.substr(0, filename.find_last_not_of(" ", 7) + 1)
-      + filename.substr(8, filename.find_last_not_of(" ", 11) - 7);
-
     if (num_wildcards > 0) {
       bool matches = false;
       for (int i = 0; i < num_wildcards; i++)
@@ -119,13 +115,6 @@ int main(int argc, char* argv[]) {
 	}
       if (!matches)
 	continue;
-    }
-
-    // Replace slashes (/) with a double dash (--)
-    for (std::string::size_type pos{}, count{};
-	 filename.npos != (pos = filename.find("/", pos, 1));
-         pos++, ++count) {
-      filename.replace(pos, 1, "--", 2);
     }
 
     std::cout << filename << "\t" << SF7::file_type_names[static_cast<uint8_t>(file.filetype())];

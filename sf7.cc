@@ -23,8 +23,9 @@
 
 namespace SF7 {
 
-  File::File(std::string fn, uint8_t fc, uint8_t attr, const Disk* d) :
-    _filename(std::move(fn)),
+  File::File(std::string rfn, std::string fn, uint8_t fc, uint8_t attr, const Disk* d) :
+    _raw_filename(rfn),
+    _filename(fn),
     _first_cluster(fc),
     _filetype(static_cast<File::type>(attr & FILE_ATTR_TYPE_MASK)),
     _readonly(attr & FILE_ATTR_RO),
@@ -41,6 +42,10 @@ namespace SF7 {
 
   uint8_t File::_fat_entry(uint8_t cnum) const {
     return _disk->_data[static_cast<int>(_disk->_structure::FAT_start) + cnum];
+  }
+
+  std::string File::raw_filename(void) const {
+    return _raw_filename;
   }
 
   std::string File::filename(void) const {
@@ -125,11 +130,25 @@ namespace SF7 {
       if (entry.filename[0] == 0)
 	continue;
 
+      // Convert Sega 'ASCII' into UTF-8 text
       std::vector<uint8_t> sega_filename(12);
       memcpy(sega_filename.data(), entry.filename, 12);
       auto utf8_filename = Sega::convert_utf8(sega_filename, charmap);
+      std::string filename(reinterpret_cast<char*>(utf8_filename.data()), utf8_filename.size());
 
-      File file(std::string(reinterpret_cast<char*>(utf8_filename.data()), utf8_filename.size()),
+      // Remove spaces at end of the two parts of the filename
+      filename = filename.substr(0, filename.find_last_not_of(" ", 7) + 1)
+	+ filename.substr(8, filename.find_last_not_of(" ", 11) - 7);
+
+      // Replace slashes (/) with a double dash (--)
+      for (std::string::size_type pos{}, count{};
+	   filename.npos != (pos = filename.find("/", pos, 1));
+	   pos++, ++count) {
+	filename.replace(pos, 1, "--", 2);
+      }
+
+      File file(std::string(entry.filename, 12),
+		filename,
 		entry.first_cluster,
 		entry.attribute,
 		this);
