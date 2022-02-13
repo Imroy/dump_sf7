@@ -75,13 +75,6 @@ namespace BASIC {
     { 0xa4, "RIGHT$" }, { 0xa5, "MID$" }, { 0xa6, "STR$" }, { 0xa7, "TIME$" },
   };
 
-  void _append_hex(std::vector<uint8_t>& bytes, uint8_t nibble) {
-    if (nibble < 10)
-      bytes.push_back(0x30 + nibble);
-    else
-      bytes.push_back(0x61 + nibble - 10);
-  }
-
   std::vector<uint8_t> detokenise(const std::vector<uint8_t> bytes, const std::unordered_map<uint8_t, std::string>& charmap) {
     std::vector<uint8_t> output;
     output.reserve(bytes.size() * 10);
