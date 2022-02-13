@@ -144,10 +144,7 @@ int main(int argc, char* argv[]) {
     if (!raw) {
       if (file.filetype() == SF7::File::type::ascii) {
 	std::cout << "\t[Sega text]";
-	if (use_japanese)
-	  contents = Sega::convert_utf8_japan(contents);
-	else
-	  contents = Sega::convert_utf8_export(contents);
+	contents = Sega::convert_utf8(contents, use_japanese ? Sega::japan_charmap : Sega::export_charmap);
 
       } else if ((file.filetype() == SF7::File::type::non_ascii)
 		 && (all_basic

@@ -28,11 +28,8 @@ void append_string_to_bytes(std::vector<uint8_t>& bytes, const std::string& str)
 
 namespace Sega {
 
-  //! Convert 8-bit text to UTF-8 encoded text using the Japanese SC-3000 character set
-  std::vector<uint8_t> convert_utf8_japan(const std::vector<uint8_t>& source);
-
-  //! Convert 8-bit text to UTF-8 encoded text using the 'export' SC-3000 character set
-  std::vector<uint8_t> convert_utf8_export(const std::vector<uint8_t>& source);
+  //! Convert 8-bit text to UTF-8 encoded text using the supplied character set
+  std::vector<uint8_t> convert_utf8(const std::vector<uint8_t>& source, std::unordered_map<uint8_t, std::string>& charmap);
 
   extern std::unordered_map<uint8_t, std::string> japan_charmap;
   extern std::unordered_map<uint8_t, std::string> export_charmap;

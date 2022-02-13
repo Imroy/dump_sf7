@@ -25,13 +25,13 @@ void append_string_to_bytes(std::vector<uint8_t>& bytes, const std::string& str)
 
 namespace Sega {
 
-  static std::vector<uint8_t> convert_utf8(const std::vector<uint8_t>& source, std::unordered_map<uint8_t, std::string>& map) {
+  std::vector<uint8_t> convert_utf8(const std::vector<uint8_t>& source, std::unordered_map<uint8_t, std::string>& charmap) {
     std::vector<uint8_t> dest;
     dest.reserve(source.size() * 3);
 
     for (auto byte : source) {
-      if (map.find(byte) != map.end()) {
-	append_string_to_bytes(dest, map[byte]);
+      if (charmap.find(byte) != charmap.end()) {
+	append_string_to_bytes(dest, charmap[byte]);
 	continue;
       }
 
@@ -40,14 +40,6 @@ namespace Sega {
 
     dest.shrink_to_fit();
     return dest;
-  }
-
-  std::vector<uint8_t> convert_utf8_japan(const std::vector<uint8_t>& source) {
-    return convert_utf8(source, japan_charmap);
-  }
-
-  std::vector<uint8_t> convert_utf8_export(const std::vector<uint8_t>& source) {
-    return convert_utf8(source, export_charmap);
   }
 
   // https://en.wikipedia.org/wiki/Sega_SC-3000_character_set
