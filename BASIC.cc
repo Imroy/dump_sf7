@@ -75,41 +75,11 @@ namespace BASIC {
     { 0xa4, "RIGHT$" }, { 0xa5, "MID$" }, { 0xa6, "STR$" }, { 0xa7, "TIME$" },
   };
 
-  std::vector<uint8_t> detokenise(const std::vector<uint8_t> bytes, const std::unordered_map<uint8_t, std::string>& charmap) {
-    std::vector<uint8_t> output;
-    output.reserve(bytes.size() * 10);
+  static void _detokenise_line(std::vector<uint8_t>& output, std::vector<uint8_t>::const_iterator bi, uint8_t line_length, const std::unordered_map<uint8_t, std::string>& charmap) {
+    bool use_funcs = false;
+    bool is_text = false;
 
-    bool start_of_line = true, use_funcs, is_text;
-    for (auto bi = bytes.begin(); bi != bytes.end(); bi++) {
-      if (*bi == 0)
-	break;
-
-      if (start_of_line) {
-	// Eat five bytes of binary data at the start of each line
-	bi++;
-	if (bi == bytes.end())
-	  break;
-	// Second and third bytes are the line number
-	int lineno = *bi;
-	bi++;
-	if (bi == bytes.end())
-	  break;
-
-	lineno |= (*bi) << 8;
-	bi++;
-	if (bi == bytes.end())
-	  break;
-	bi++;
-	if (bi == bytes.end())
-	  break;
-	append_string_to_bytes(output, std::to_string(lineno) + " ");
-
-	start_of_line = false;
-	use_funcs = false;
-	is_text = false;
-	continue;
-      }
-
+    for (auto endi = bi + line_length; bi < endi; bi++) {
       // Ordinary ASCII characters
       if ((*bi >= 32) && (*bi < 127)) {
 	output.push_back(*bi);
@@ -117,14 +87,6 @@ namespace BASIC {
 	  use_funcs = false;
 	else if (*bi == '"')
 	  is_text ^= true;
-	continue;
-      }
-
-      // Newline
-      if (*bi == 0x0d) {
-	output.push_back('\x0a');
-	start_of_line = true;
-	is_text = false;
 	continue;
       }
 
@@ -157,6 +119,37 @@ namespace BASIC {
       }
 
       // ?
+    }
+  }
+
+  std::vector<uint8_t> detokenise(const std::vector<uint8_t> bytes, const std::unordered_map<uint8_t, std::string>& charmap) {
+    std::vector<uint8_t> output;
+    output.reserve(bytes.size() * 10);
+
+    for (auto bi = bytes.begin(); bi != bytes.end(); bi++) {
+      // First byte is the line length (after the line number)
+      uint8_t line_length = *bi;
+      if (line_length == 0)
+	break;
+      bi++;
+
+      // Next two bytes are the line number
+      int lineno = *bi;
+      bi++;
+      lineno |= *bi << 8;
+      bi++;
+
+      // Next two bytes?
+      bi++;
+      bi++;
+
+      append_string_to_bytes(output, std::to_string(lineno) + " ");
+
+      // Detokenise the contents
+      _detokenise_line(output, bi, line_length, charmap);
+      bi += line_length;
+
+      output.push_back('\x0a');
    }
 
     output.shrink_to_fit();
