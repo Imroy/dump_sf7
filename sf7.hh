@@ -38,7 +38,11 @@ namespace SF7 {
   const int sectors_per_cluster = 4;
   const int cluster_size = sector_size * sectors_per_cluster;
 
-  const std::string file_type_names[3] = { "non-ASCII", "ASCII", "hexadecimal" };
+  const std::string file_type_names[3] = {
+    "non-ASCII",
+    "ASCII",
+    "hexadecimal",
+  };
 
 
   class Disk;
