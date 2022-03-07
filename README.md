@@ -6,13 +6,13 @@ It is based on documentation in [the User's Manual](https://segaretro.org/images
 
 ## Dependencies
 
-`dump_sf7` is a simple program with no dependencies. It just needs a C++11 compiler and CMake to build.
+`dump_sf7` is a simple program with no dependencies. It only needs a C++11 compiler and CMake to build.
 
     apt-get install g++ cmake
 
 ## Building and installing
 
-Just use CMake and make in a `build` directory.
+Use CMake and make in a `build` directory.
 
     mkdir build
     cd build
@@ -22,7 +22,7 @@ Just use CMake and make in a `build` directory.
 
 ## Command line usage
 
-The program takes a single argument; the name of a floppy disc image. It also has four options.
+The program takes a single required argument; the name of a floppy disc image. It also has four options and any number of filenames or wildcards.
 
     dump_sf7 [options] <dump.sf7> [filenames or wildcards...]
 
