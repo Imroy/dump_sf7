@@ -38,6 +38,7 @@ namespace SF7 {
   const int sectors_per_cluster = 4;
   const int cluster_size = sector_size * sectors_per_cluster;
 
+  //! Map from File::type value to a text description
   const std::string file_type_names[3] = {
     "non-ASCII",
     "ASCII",
@@ -47,19 +48,29 @@ namespace SF7 {
 
   class Disk;
 
+  //! Class representing a file on a disk
   class File {
   public:
+    //! File types
     enum class type : uint8_t {
       non_ascii		= 0,
       ascii		= 1,
       hexadecimal	= 2,
     };
 
+    //! Raw file name
     std::string raw_filename(void) const;
+
+    //! File name
     std::string filename(void) const;
+
+    //! File type
     type filetype(void) const;
+
+    //! Is the file read-only?
     bool readonly(void) const;
 
+    //! Read contents
     const std::vector<uint8_t> read(void);
 
   private:
@@ -85,6 +96,7 @@ namespace SF7 {
   };
 
 
+  //! Class representing a disk
   class Disk {
   private:
     enum class _structure {
@@ -140,16 +152,24 @@ namespace SF7 {
     friend class File;
 
   public:
+    //! Empty constructor
     Disk();
 
+    //! Load data from a buffer
     void load_data(const uint8_t* data, uint16_t length);
 
+    //    uint32_t id(void) const;
+
+    //! Is this a system disk?
     bool is_sys(void) const;
 
+    //! Disk name
     const std::string name(void) const;
 
+    //! Initial Program Loader
     const std::vector<uint8_t> IPL(void) const;
 
+    //! List the files on disk
     const std::vector<File> list_directory(std::unordered_map<uint8_t, std::string>& charmap) const;
 
   }; // class Disk

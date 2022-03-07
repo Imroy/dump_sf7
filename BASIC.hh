@@ -26,6 +26,7 @@ namespace BASIC {
 
   extern std::unordered_map<uint8_t, std::string> tokens, funcs;
 
+  //! Detokenise a BASIC file into UTF-8 text
   std::vector<uint8_t> detokenise(const std::vector<uint8_t> bytes, const std::unordered_map<uint8_t, std::string>& charmap);
 
 }; // namespace BASIC
