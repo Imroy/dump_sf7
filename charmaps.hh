@@ -26,12 +26,15 @@
 // Utility function
 void append_string_to_bytes(std::vector<uint8_t>& bytes, const std::string& str);
 
+//! Convert 8-bit text to UTF-8 encoded text using the supplied character set
+std::vector<uint8_t> convert_utf8(const std::vector<uint8_t>& source, std::unordered_map<uint8_t, std::string>& charmap);
+
 namespace Sega {
 
-  //! Convert 8-bit text to UTF-8 encoded text using the supplied character set
-  std::vector<uint8_t> convert_utf8(const std::vector<uint8_t>& source, std::unordered_map<uint8_t, std::string>& charmap);
+  namespace SC3000 {
+    extern std::unordered_map<uint8_t, std::string> japan_charmap;
+    extern std::unordered_map<uint8_t, std::string> export_charmap;
 
-  extern std::unordered_map<uint8_t, std::string> japan_charmap;
-  extern std::unordered_map<uint8_t, std::string> export_charmap;
+  }; // namespace SC3000
 
 }; // namespace Sega

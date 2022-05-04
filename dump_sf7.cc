@@ -72,14 +72,14 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  SF7::Disk disk;
+  Sega::SF7000::Disk disk;
   {
     std::string filepath = argv[optind];
     std::ifstream ifs(filepath, std::ios::binary);
     if (!ifs.is_open())
       return -1;
 
-    uint8_t buffer[SF7::track_size * 10];
+    uint8_t buffer[Sega::SF7000::track_size * 10];
     while (ifs.good()) {
       ifs.read(reinterpret_cast<char*>(buffer), sizeof(buffer));
       disk.load_data(buffer, ifs.gcount());
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
   for (int i = optind + 1; i < argc; i++)
     wildcards[i - optind - 1] = argv[i];
 
-  auto files = disk.list_directory(use_japanese ? Sega::japan_charmap : Sega::export_charmap);
+  auto files = disk.list_directory(use_japanese ? Sega::SC3000::japan_charmap : Sega::SC3000::export_charmap);
   for (auto file : files) {
     auto filename = file.filename();
 
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
 	continue;
     }
 
-    std::cout << filename << "\t" << SF7::file_type_names[static_cast<uint8_t>(file.filetype())];
+    std::cout << filename << "\t" << Sega::SF7000::file_type_names[static_cast<uint8_t>(file.filetype())];
     if (file.readonly())
       std::cout << "\tread-only";
     else
@@ -131,17 +131,17 @@ int main(int argc, char* argv[]) {
     auto contents = file.read();
 
     if (!raw) {
-      if (file.filetype() == SF7::File::type::ascii) {
+      if (file.filetype() == Sega::SF7000::File::type::ascii) {
 	std::cout << "\t[Sega text]";
-	contents = Sega::convert_utf8(contents, use_japanese ? Sega::japan_charmap : Sega::export_charmap);
+	contents = convert_utf8(contents, use_japanese ? Sega::SC3000::japan_charmap : Sega::SC3000::export_charmap);
 
-      } else if ((file.filetype() == SF7::File::type::non_ascii)
+      } else if ((file.filetype() == Sega::SF7000::File::type::non_ascii)
 		 && (all_basic
 		     || ((filename.size() >= 4) && (filename.substr(filename.size() - 4, 4) == ".BAS"))
 		     )
 		 ) {
 	std::cout << "\t[BASIC]";
-	contents = BASIC::detokenise(contents, use_japanese ? Sega::japan_charmap : Sega::export_charmap);
+	contents = Sega::BASIC::detokenise(contents, use_japanese ? Sega::SC3000::japan_charmap : Sega::SC3000::export_charmap);
 
       }
     }

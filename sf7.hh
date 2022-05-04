@@ -23,156 +23,160 @@
 #include <unordered_map>
 #include <stdint.h>
 
-namespace SF7 {
+namespace Sega {
 
-  // Size of each disk (each side is read seperately)
-  const int tracks_per_disk = 40;
-  const int sectors_per_track = 16;
-  const int sector_size = 256;
+  namespace SF7000 {
 
-  // Derived sizes
-  const int track_size = sector_size * sectors_per_track;
-  const int disk_size = track_size * tracks_per_disk;
+    // Size of each disk (each side is read seperately)
+    const int tracks_per_disk = 40;
+    const int sectors_per_track = 16;
+    const int sector_size = 256;
 
-  // 'Clusters' is used by the file system
-  const int sectors_per_cluster = 4;
-  const int cluster_size = sector_size * sectors_per_cluster;
+    // Derived sizes
+    const int track_size = sector_size * sectors_per_track;
+    const int disk_size = track_size * tracks_per_disk;
 
-  //! Map from File::type value to a text description
-  const std::string file_type_names[3] = {
-    "non-ASCII",
-    "ASCII",
-    "hexadecimal",
-  };
+    // 'Clusters' is used by the file system
+    const int sectors_per_cluster = 4;
+    const int cluster_size = sector_size * sectors_per_cluster;
 
-
-  class Disk;
-
-  //! Class representing a file on a disk
-  class File {
-  public:
-    //! File types
-    enum class type : uint8_t {
-      non_ascii		= 0,
-      ascii		= 1,
-      hexadecimal	= 2,
+    //! Map from File::type value to a text description
+    const std::string file_type_names[3] = {
+      "non-ASCII",
+      "ASCII",
+      "hexadecimal",
     };
 
-    //! Raw file name
-    std::string raw_filename(void) const;
 
-    //! File name
-    std::string filename(void) const;
+    class Disk;
 
-    //! File type
-    type filetype(void) const;
+    //! Class representing a file on a disk
+    class File {
+    public:
+      //! File types
+      enum class type : uint8_t {
+	non_ascii		= 0,
+	ascii		= 1,
+	hexadecimal	= 2,
+      };
 
-    //! Is the file read-only?
-    bool readonly(void) const;
+      //! Raw file name
+      std::string raw_filename(void) const;
 
-    //! Read contents
-    const std::vector<uint8_t> read(void);
+      //! File name
+      std::string filename(void) const;
 
-  private:
-    std::string _raw_filename, _filename;
-    uint8_t _first_cluster;
-    type _filetype;
-    bool _readonly;
-    const Disk *_disk;
+      //! File type
+      type filetype(void) const;
 
-    File(std::string rfn, std::string fn, uint8_t fc, uint8_t attr, const Disk* d);
+      //! Is the file read-only?
+      bool readonly(void) const;
 
-    enum _file_attribute_flags : uint8_t {
-      FILE_ATTR_RO		= 0x80,
-      FILE_ATTR_TYPE_MASK	= 0x0f,
+      //! Read contents
+      const std::vector<uint8_t> read(void);
+
+    private:
+      std::string _raw_filename, _filename;
+      uint8_t _first_cluster;
+      type _filetype;
+      bool _readonly;
+      const Disk *_disk;
+
+      File(std::string rfn, std::string fn, uint8_t fc, uint8_t attr, const Disk* d);
+
+      enum _file_attribute_flags : uint8_t {
+	FILE_ATTR_RO		= 0x80,
+	FILE_ATTR_TYPE_MASK	= 0x0f,
+      };
+
+      // Low-level functions
+      void _read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const;
+      uint8_t _fat_entry(uint8_t cnum) const;
+
+      friend class Disk;
+
     };
 
-    // Low-level functions
-    void _read_cluster(uint8_t cnum, std::vector<uint8_t>& dest) const;
-    uint8_t _fat_entry(uint8_t cnum) const;
 
-    friend class Disk;
+    //! Class representing a disk
+    class Disk {
+    private:
+      enum class _structure {
+	id_start		= 0,
+	id_size			= 4,
 
-  };
+	name_start		= 4,
+	name_size		= 28,
 
+	IPL_start		= 32,
+	IPL_size		= sector_size - 32,
 
-  //! Class representing a disk
-  class Disk {
-  private:
-    enum class _structure {
-      id_start			= 0,
-      id_size			= 4,
+	_reserved_0_start	= sector_size,
+	_reserved_0_size	= 15 * sector_size,
 
-      name_start		= 4,
-      name_size			= 28,
+	system_programs_start	= track_size,
+	system_programs_size	= 19 * track_size,
 
-      IPL_start			= 32,
-      IPL_size			= sector_size - 32,
+	directory_start		= 20 * track_size,
+	directory_size		= 12 * sector_size,
 
-      _reserved_0_start		= sector_size,
-      _reserved_0_size		= 15 * sector_size,
+	FAT_start		= (20 * track_size) + (12 * sector_size),
+	FAT_size		= sector_size,
 
-      system_programs_start	= track_size,
-      system_programs_size	= 19 * track_size,
+	user_start		= 21 * track_size,
+	user_size		= 19 * track_size,
+      };
 
-      directory_start		= 20 * track_size,
-      directory_size		= 12 * sector_size,
+      struct _dir_entry {
+	const char filename[12];	// 8.3, including the period
+	uint8_t first_cluster;
+	uint8_t attribute;
+	uint8_t _unused[2];
+      };
 
-      FAT_start			= (20 * track_size) + (12 * sector_size),
-      FAT_size			= sector_size,
+      const int dir_entry_size = sizeof(_dir_entry);
+      const int max_dir_entries = static_cast<int>(_structure::directory_size) / dir_entry_size;
 
-      user_start		= 21 * track_size,
-      user_size			= 19 * track_size,
-    };
+      enum class _fat_entry_flags {
+	LAST_CLUSTER_PREFIX		= 0xc0,
+	LAST_CLUSTER_MASK		= 0xf0,
+	LAST_CLUSTER_NUM_SECTORS_MASK	= 0x0f,
 
-    struct _dir_entry {
-      const char filename[12];	// 8.3, including the period
-      uint8_t first_cluster;
-      uint8_t attribute;
-      uint8_t _unused[2];
-    };
+	RESERVED			= 0xfe,
+	UNUSED				= 0xff,
+      };
 
-    const int dir_entry_size = sizeof(_dir_entry);
-    const int max_dir_entries = static_cast<int>(_structure::directory_size) / dir_entry_size;
+      std::vector<uint8_t> _data;
 
-    enum class _fat_entry_flags {
-      LAST_CLUSTER_PREFIX		= 0xc0,
-      LAST_CLUSTER_MASK			= 0xf0,
-      LAST_CLUSTER_NUM_SECTORS_MASK	= 0x0f,
+      // Low-level functions
+      void _read_sector(uint16_t snum, std::vector<uint8_t>& dest) const;
 
-      RESERVED		= 0xfe,
-      UNUSED		= 0xff,
-    };
+      friend class File;
 
-    std::vector<uint8_t> _data;
+    public:
+      //! Empty constructor
+      Disk();
 
-    // Low-level functions
-    void _read_sector(uint16_t snum, std::vector<uint8_t>& dest) const;
+      //! Load data from a buffer
+      void load_data(const uint8_t* data, uint16_t length);
 
-    friend class File;
+      //    uint32_t id(void) const;
 
-  public:
-    //! Empty constructor
-    Disk();
+      //! Is this a system disk?
+      bool is_sys(void) const;
 
-    //! Load data from a buffer
-    void load_data(const uint8_t* data, uint16_t length);
+      //! Disk name
+      const std::string name(void) const;
 
-    //    uint32_t id(void) const;
+      //! Initial Program Loader
+      const std::vector<uint8_t> IPL(void) const;
 
-    //! Is this a system disk?
-    bool is_sys(void) const;
+      //! List the files on disk
+      const std::vector<File> list_directory(std::unordered_map<uint8_t, std::string>& charmap) const;
 
-    //! Disk name
-    const std::string name(void) const;
-
-    //! Initial Program Loader
-    const std::vector<uint8_t> IPL(void) const;
-
-    //! List the files on disk
-    const std::vector<File> list_directory(std::unordered_map<uint8_t, std::string>& charmap) const;
-
-  }; // class Disk
+    }; // class Disk
 
 
-}; // namespace sf7
+  }; // namespace SF7000
+
+}; // namespace Sega
