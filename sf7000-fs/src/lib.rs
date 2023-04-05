@@ -60,39 +60,8 @@ pub const DISK_FAT_END: usize		= 21 * TRACK_SIZE;
 pub const DISK_USER_START: usize	= 21 * TRACK_SIZE;
 pub const DISK_USER_END: usize		= DISK_SIZE;
 
-struct DirEntry {
-    filename: Vec<u8>,
-    first_cluster: u8,
-    attribute: u8,
-    // Two unused bytes
-}
-
-impl DirEntry {
-    fn from_raw(data: &[u8]) -> DirEntry {
-        DirEntry {
-            filename: (&data[0..12]).to_vec(),
-            first_cluster: data[12],
-            attribute: data[13],
-        }
-    }
-}
-
-
-pub const DIR_ENTRY_SIZE: usize = 16;
-pub const MAX_DIR_ENTRIES: usize = (12 * SECTOR_SIZE) / DIR_ENTRY_SIZE;
-
-const FAT_LAST_CLUSTER_MASK: u8		= 0xf0;
-const FAT_LAST_CLUSTER_PREFIX: u8	= 0xc0;
-const FAT_LAST_CLUSTER_NUM_SECTORS_MASK: u8 = 0x0f;
-const FAT_RESERVED: u8			= 0xfe;
-const FAT_UNUSED: u8			= 0xff;
-
-/// SF-7000 disk image
-pub struct Disk {
-    data: Vec<u8>,
-}
-
 /// File types as stored on disk
+#[derive(PartialEq)]
 pub enum FileType {
     NonAscii = 0,
     Ascii = 1,
@@ -122,13 +91,40 @@ impl fmt::Display for FileType {
 }
 
 
-const FILE_ATTR_RO: u8		= 0x80;
+struct DirEntry<'a> {
+    name: &'a [u8],
+    first_cluster: u8,
+    file_type: FileType,
+    readonly: bool,
+}
+
 const FILE_ATTR_TYPE_MASK: u8	= 0x0f;
+const FILE_ATTR_RO: u8		= 0x80;
+
+impl DirEntry<'_> {
+    fn from_raw(data: &[u8]) -> DirEntry {
+        DirEntry {
+            name: &data[0..12],
+            first_cluster: data[12],
+            file_type: (data[13] & FILE_ATTR_TYPE_MASK).try_into().unwrap(),
+            readonly: data[13] & FILE_ATTR_RO != 0,
+        }
+    }
+}
+
+
+pub const DIR_ENTRY_SIZE: usize = 16;
+pub const MAX_DIR_ENTRIES: usize = (12 * SECTOR_SIZE) / DIR_ENTRY_SIZE;
+
+/// SF-7000 disk image
+pub struct Disk {
+    data: Vec<u8>,
+}
 
 /// SF-7000 file
 pub struct File<'a> {
-    raw_filename: Vec<u8>,
-    pub filename: String,
+    raw_name: Vec<u8>,
+    pub name: String,
     pub first_cluster: u8,
     pub file_type: FileType,
     pub readonly: bool,
@@ -172,13 +168,12 @@ impl Disk {
 
         for i in 0..MAX_DIR_ENTRIES {
             let entry_start = DISK_DIRECTORY_START + (i * DIR_ENTRY_SIZE);
-            let entry_end = entry_start + DIR_ENTRY_SIZE;
-            let entry = DirEntry::from_raw(&self.data[entry_start..entry_end]);
-            if entry.filename[0] == b'\0' {
+            let entry = DirEntry::from_raw(&self.data[entry_start..entry_start + DIR_ENTRY_SIZE]);
+            if entry.name[0] == b'\0' {
                 continue;
             }
 
-            let mut utf8_filename = convert_utf8(entry.filename.as_slice(), charmap);
+            let mut utf8_filename = convert_utf8(entry.name, charmap);
             let (mut name_part, mut ext_part) = utf8_filename.split_at(8);
             while name_part.ends_with(" ") {
                 name_part = name_part.strip_suffix(' ').unwrap();
@@ -190,11 +185,11 @@ impl Disk {
             utf8_filename = utf8_filename.replace("/", "--");
 
             files.push(File {
-                raw_filename: entry.filename.to_vec(),
-                filename: utf8_filename,
+                raw_name: entry.name.to_vec(),
+                name: utf8_filename,
                 first_cluster: entry.first_cluster,
-                file_type: (entry.attribute & FILE_ATTR_TYPE_MASK).try_into().unwrap(),
-                readonly: entry.attribute & FILE_ATTR_RO != 0,
+                file_type: entry.file_type,
+                readonly: entry.readonly,
                 disk: self,
             });
         }
@@ -208,6 +203,12 @@ impl Disk {
     }
 }
 
+
+const FAT_LAST_CLUSTER_MASK: u8		= 0xf0;
+const FAT_LAST_CLUSTER_PREFIX: u8	= 0xc0;
+const FAT_LAST_CLUSTER_NUM_SECTORS_MASK: u8 = 0x0f;
+const FAT_RESERVED: u8			= 0xfe;
+const FAT_UNUSED: u8			= 0xff;
 
 impl File<'_> {
     fn read_cluster(&self, cluster_num: u8) -> Vec<u8> {
@@ -232,7 +233,7 @@ impl File<'_> {
         let mut cluster_num = self.first_cluster;
         while cluster_num < 160 {
             if visited_clusters.contains(&cluster_num) {
-                eprintln!("FAT loop detected when reading file \"{}\".", self.filename);
+                eprintln!("FAT loop detected when reading file \"{}\".", self.name);
                 return bytes;
             }
             visited_clusters.insert(cluster_num);

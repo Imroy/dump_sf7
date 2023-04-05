@@ -75,7 +75,7 @@ fn main() {
 
     let files = disk.list_directory(&charmap);
     for file in files {
-        print!("{}\t{}\tread-{}", file.filename, file.file_type, if file.readonly { "only" } else { "write" });
+        print!("{}\t{}\tread-{}", file.name, file.file_type, if file.readonly { "only" } else { "write" });
 
         if only_list {
             println!("");
