@@ -23,8 +23,10 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 
+use sega_basic::*;
 use sc3000_charset::*;
 use sf7000_fs::*;
+use dump_sf7::convert_utf8;
 
 fn usage(progname: &str, opts: Options) {
     let brief = format!("Usage: {} [options] <image.sf7> [filenames or wildcards...]", progname);
@@ -62,14 +64,14 @@ fn main() {
     {
         let mut file = File::open(matches.free[0].clone()).unwrap();
         let mut disk_buf = Vec::new();
-        file.read_to_end(&mut disk_buf);
+        file.read_to_end(&mut disk_buf).unwrap();
         disk.load_data(&disk_buf);
     }
 
     if disk.is_sys() {
         println!("System disk: {}", disk.name(&charmap));
         let mut file = File::create("IPL.bin").unwrap();
-        file.write_all(&disk.ipl());
+        file.write_all(&disk.ipl()).unwrap();
         println!("Wrote initial program loader to IPL.bin");
     }
 
@@ -81,5 +83,23 @@ fn main() {
             println!("");
             continue;
         }
+
+        let contents = file.read();
+        let mut outfile = File::create(file.name).unwrap();
+        if !raw {
+            if file.file_type == FileType::Ascii {
+                print!("\t[Sega text]");
+                outfile.write(convert_utf8(&contents, &charmap).as_str().as_bytes()).unwrap();
+            } else if file.file_type == FileType::NonAscii
+                && all_basic {
+                    print!("\t[BASIC]");
+                    outfile.write(detokenise(&contents, &charmap).as_str().as_bytes()).unwrap();
+                } else {
+                    outfile.write(&contents).unwrap();
+                }
+        } else {
+            outfile.write(&contents).unwrap();
+        }
+        println!("");
     }
 }

@@ -9,4 +9,5 @@ license = "GPL-3.0-or-later"
 [dependencies]
 getopts = "0.2"
 sc3000-charset = { path = "../sc3000-charset" }
+sega-basic = { path = "../sega-basic" }
 sf7000-fs = { path = "../sf7000-fs" }
