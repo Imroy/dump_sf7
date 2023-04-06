@@ -155,13 +155,13 @@ fn main() {
         }
 
         let contents = file.read();
-        let mut outfile = File::create(file.name).unwrap();
+        let mut outfile = File::create(&file.name).unwrap();
         if !raw {
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
                 outfile.write(convert_utf8(&contents, &charmap).as_str().as_bytes()).unwrap();
             } else if file.file_type == FileType::NonAscii
-                && all_basic {
+                && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
                     outfile.write(detokenise(&contents, &charmap).as_str().as_bytes()).unwrap();
                 } else {
