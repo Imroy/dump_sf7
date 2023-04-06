@@ -16,57 +16,13 @@
   along with this library.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#[macro_use]
+extern crate lazy_static;
+
 use std::collections::HashMap;
 
-fn detokenise_line(output: &mut String, input: &[u8], charmap: &HashMap<u8, char>, tokens: &HashMap<u8, &str>, funcs: &HashMap<u8, &str>) {
-    let mut use_funcs = false;
-    let mut is_text = false;
-
-    for b in input {
-        // Ordinary ASCII characters
-        if (*b >= 32) && (*b < 127) {
-            output.push(char::from(*b));
-            if *b == b':' {
-                use_funcs = false;
-            } else if *b == b'"' {
-                is_text = !is_text;
-            }
-            continue;
-        }
-
-        if is_text {
-            if charmap.contains_key(b) {
-                output.push(charmap[b]);
-                continue;
-            }
-            output.push(char::from(*b));
-            continue;
-        }
-
-        if use_funcs {
-            if funcs.contains_key(b) {
-                output.push_str(funcs[b]);
-                continue;
-            }
-        }
-        use_funcs = false;
-
-        if tokens.contains_key(b) {
-            output.push_str(tokens[b]);
-
-            if *b == 0x90 {
-                is_text = true;
-            }
-
-            continue;
-        }
-
-        // ?
-    }
-}
-
-pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
-    let tokens = HashMap::from([
+lazy_static! {
+    static ref TOKENS: HashMap<u8, &'static str> = HashMap::from([
         ( 0x81, "INPUT$" ), ( 0x82, "LIST" ), ( 0x83, "LLIST" ),
         ( 0x84, "AUTO" ), ( 0x85, "DELETE" ), ( 0x86, "RUN" ), ( 0x87, "CONT" ),
         ( 0x88, "LOAD" ), ( 0x89, "SAVE" ), ( 0x8a, "VERIFY" ), ( 0x8b, "NEW" ),
@@ -98,7 +54,7 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
         ( 0xe4, "TAB" ), ( 0xe5, "SPC" ), ( 0xe7, "OUTPUT" ),
     ]);
 
-    let funcs = HashMap::from([
+    static ref FUNCS: HashMap<u8, &'static str> = HashMap::from([
         ( 0x80, "ABS" ), ( 0x81, "RND" ), ( 0x82, "SIN" ), ( 0x83, "COS" ),
         ( 0x84, "TAN" ), ( 0x85, "ASN" ), ( 0x86, "ACS" ), ( 0x87, "ATN" ),
         ( 0x88, "LOG" ), ( 0x89, "LGT" ), ( 0x8a, "LTW" ), ( 0x8b, "EXP" ),
@@ -112,7 +68,56 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
         ( 0xa0, "CHR$" ), ( 0xa1, "HEX$" ), ( 0xa2, "INKEY$" ), ( 0xa3, "LEFT$" ),
         ( 0xa4, "RIGHT$" ), ( 0xa5, "MID$" ), ( 0xa6, "STR$" ), ( 0xa7, "TIME$" ),
     ]);
+}
 
+fn detokenise_line(output: &mut String, input: &[u8], charmap: &HashMap<u8, char>) {
+    let mut use_funcs = false;
+    let mut is_text = false;
+
+    for b in input {
+        // Ordinary ASCII characters
+        if (*b >= 32) && (*b < 127) {
+            output.push(char::from(*b));
+            if *b == b':' {
+                use_funcs = false;
+            } else if *b == b'"' {
+                is_text = !is_text;
+            }
+            continue;
+        }
+
+        if is_text {
+            if charmap.contains_key(b) {
+                output.push(charmap[b]);
+                continue;
+            }
+            output.push(char::from(*b));
+            continue;
+        }
+
+        if use_funcs {
+            if FUNCS.contains_key(b) {
+                output.push_str(FUNCS[b]);
+                continue;
+            }
+        }
+        use_funcs = false;
+
+        if TOKENS.contains_key(b) {
+            output.push_str(TOKENS[b]);
+
+            if *b == 0x90 {
+                is_text = true;
+            }
+
+            continue;
+        }
+
+        // ?
+    }
+}
+
+pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
     let mut output = String::new();
     output.reserve(bytes.len() * 10);
 
@@ -137,7 +142,7 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
         output.push_str(" ");
 
         // Detokenise the contents
-        detokenise_line(&mut output, &bytes[i..i + (line_length as usize)], charmap, &tokens, &funcs);
+        detokenise_line(&mut output, &bytes[i..i + (line_length as usize)], charmap);
         i += line_length as usize;
 
         output.push('\x0a');

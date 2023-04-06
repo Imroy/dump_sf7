@@ -28,6 +28,61 @@ use sc3000_charset::*;
 use sf7000_fs::*;
 use dump_sf7::convert_utf8;
 
+// Based on https://www.geeksforgeeks.org/wildcard-pattern-matching/
+// Converted to Rust
+pub fn strmatch(input: &str, pat: &str) -> bool {
+    // Convert strings into vectors of characters
+    // i.e UTF-8 bytes into Unicode code points
+    let inchars: Vec<_> = input.chars().collect();
+    let patchars: Vec<_> = pat.chars().collect();
+
+    // empty pattern can only match with empty string
+    if patchars.len() == 0 {
+        return inchars.len() == 0;
+    }
+
+    // lookup table for storing results of subproblems
+    let mut lookup = vec![ vec![ false; patchars.len() + 1 ]; inchars.len() + 1 ];
+
+    // empty pattern can match with empty string
+    lookup[0][0] = true;
+
+    // Only '*' can match with empty string
+    for j in 1..=patchars.len() {
+        if patchars[j - 1] == '*' {
+            lookup[0][j] = lookup[0][j - 1];
+        }
+    }
+
+    // fill the table in bottom-up fashion
+    for i in 1..=inchars.len() {
+        for j in 1..=patchars.len() {
+            // Two cases if we see a '*'
+            // a) We ignore '*' character and move
+            //    to next  character in the pattern,
+            //     i.e., '' indicates an empty sequence.
+            // b) '*' character matches with ith
+            //     character in input
+            if patchars[j - 1] == '*' {
+                lookup[i][j] = lookup[i][j - 1] || lookup[i - 1][j];
+
+                // Current characters are considered as
+                // matching in two cases
+                // (a) current character of pattern is '?'
+                // (b) characters actually match
+            } else if patchars[j - 1] == '?' || inchars[i - 1] == patchars[j - 1] {
+                lookup[i][j] = lookup[i - 1][j - 1];
+
+                // If characters don't match
+            } else {
+                lookup[i][j] = false;
+            }
+        }
+    }
+
+    return lookup[inchars.len()][patchars.len()];
+}
+
 fn usage(progname: &str, opts: Options) {
     let brief = format!("Usage: {} [options] <image.sf7> [filenames or wildcards...]", progname);
     eprint!("{}", opts.usage(&brief));
@@ -75,8 +130,23 @@ fn main() {
         println!("Wrote initial program loader to IPL.bin");
     }
 
+    let wildcards = &matches.free[1..];
+
     let files = disk.list_directory(&charmap);
     for file in files {
+        let mut matches = false;
+        if wildcards.len() > 0 {
+            for wc in wildcards {
+                if strmatch(file.name.as_str().as_ref(), wc.as_str().as_ref()) {
+                    matches = true;
+                    break;
+                }
+            }
+            if !matches {
+                continue;
+            }
+        }
+
         print!("{}\t{}\tread-{}", file.name, file.file_type, if file.readonly { "only" } else { "write" });
 
         if only_list {
