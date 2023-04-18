@@ -95,11 +95,9 @@ fn detokenise_line(output: &mut String, input: &[u8], charmap: &HashMap<u8, char
             continue;
         }
 
-        if use_funcs {
-            if FUNCS.contains_key(b) {
-                output.push_str(FUNCS[b]);
-                continue;
-            }
+        if use_funcs && FUNCS.contains_key(b) {
+            output.push_str(FUNCS[b]);
+            continue;
         }
         use_funcs = false;
 
@@ -139,7 +137,7 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
 
         // Print the line number
         output.push_str(&lineno.to_string());
-        output.push_str(" ");
+        output.push(' ');
 
         // Detokenise the contents
         detokenise_line(&mut output, &bytes[i..i + (line_length as usize)], charmap);
@@ -150,5 +148,5 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
     }
 
     output.shrink_to_fit();
-    return output;
+    output
 }

@@ -37,8 +37,8 @@ pub fn strmatch(input: &str, pat: &str) -> bool {
     let patchars: Vec<_> = pat.chars().collect();
 
     // empty pattern can only match with empty string
-    if patchars.len() == 0 {
-        return inchars.len() == 0;
+    if patchars.is_empty() {
+        return inchars.is_empty();
     }
 
     // lookup table for storing results of subproblems
@@ -80,7 +80,7 @@ pub fn strmatch(input: &str, pat: &str) -> bool {
         }
     }
 
-    return lookup[inchars.len()][patchars.len()];
+    lookup[inchars.len()][patchars.len()]
 }
 
 fn usage(progname: &str, opts: Options) {
@@ -126,7 +126,7 @@ fn main() {
     if disk.is_sys() {
         println!("System disk: {}", disk.name(&charmap));
         let mut file = File::create("IPL.bin").unwrap();
-        file.write_all(&disk.ipl()).unwrap();
+        file.write_all(disk.ipl()).unwrap();
         println!("Wrote initial program loader to IPL.bin");
     }
 
@@ -135,9 +135,9 @@ fn main() {
     let files = disk.list_directory(&charmap);
     for file in files {
         let mut matches = false;
-        if wildcards.len() > 0 {
+        if !wildcards.is_empty() {
             for wc in wildcards {
-                if strmatch(file.name.as_str().as_ref(), wc.as_str().as_ref()) {
+                if strmatch(file.name.as_str(), wc.as_str()) {
                     matches = true;
                     break;
                 }
@@ -150,7 +150,7 @@ fn main() {
         print!("{}\t{}\tread-{}", file.name, file.file_type, if file.readonly { "only" } else { "write" });
 
         if only_list {
-            println!("");
+            println!();
             continue;
         }
 
@@ -182,6 +182,6 @@ fn main() {
             };
         }
 
-        println!("");
+        println!();
     }
 }

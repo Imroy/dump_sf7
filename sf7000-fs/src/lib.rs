@@ -126,21 +126,21 @@ impl Disk {
 
     /// Is this a system disk?
     pub fn is_sys(&self) -> bool {
-        let i = DISK_ID_START as usize;
-        return (self.data[i] == b'S')
+        let i = DISK_ID_START;
+        (self.data[i] == b'S')
             && (self.data[i + 1] == b'Y')
             && (self.data[i + 2] == b'S')
-            && (self.data[i + 3] == b':');
+            && (self.data[i + 3] == b':')
     }
 
     /// Disk name
     pub fn name(&self, charmap: &HashMap<u8, char>) -> String {
-        return convert_utf8(&self.data[DISK_NAME_START..DISK_NAME_END], charmap);
+        convert_utf8(&self.data[DISK_NAME_START..DISK_NAME_END], charmap)
     }
 
     /// Initial Program Loader
     pub fn ipl(&self) -> &[u8] {
-        return &self.data[DISK_IPL_START..DISK_IPL_END];
+        &self.data[DISK_IPL_START..DISK_IPL_END]
     }
 
     /// List the files on disk
@@ -156,14 +156,14 @@ impl Disk {
 
             let mut utf8_filename = convert_utf8(name, charmap);
             let (mut name_part, mut ext_part) = utf8_filename.split_at(8);
-            while name_part.ends_with(" ") {
+            while name_part.ends_with(' ') {
                 name_part = name_part.strip_suffix(' ').unwrap();
             }
-            while ext_part.ends_with(" ") {
+            while ext_part.ends_with(' ') {
                 ext_part = ext_part.strip_suffix(' ').unwrap();
             }
             utf8_filename = name_part.to_owned() + ext_part;
-            utf8_filename = utf8_filename.replace("/", "--");
+            utf8_filename = utf8_filename.replace('/', "--");
 
             files.push(File {
                 raw_name: name.to_vec(),
@@ -175,7 +175,7 @@ impl Disk {
             });
         }
 
-        return files;
+        files
     }
 
     fn read_sector(&self, sector_num: u16) -> Vec<u8> {
