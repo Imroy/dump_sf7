@@ -101,10 +101,7 @@ fn main() -> std::io::Result<()> {
     opts.optflag("r", "raw", "Raw output. Files are dumped as in the image with no Sega => UTF-8 conversion or BASIC detokenisation.");
     opts.optflag("b", "basic", "BASIC detokenisation of all non-ASCII files, not just ones named *.BAS.");
 
-    let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!("{}", f.to_string()) }
-    };
+    let matches = opts.parse(&args[1..]).map_err(|e| std::io::Error::other(e.to_string()))?;
     if matches.opt_present("h") || matches.free.is_empty() {
         usage(&progname, opts);
         return Ok(());
