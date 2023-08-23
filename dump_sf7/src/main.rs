@@ -172,14 +172,11 @@ fn main() {
         }
 
         if file.readonly {
-            match outfile.metadata() {
-                Ok(m) => {
-                    let mut perms = m.permissions();
-                    perms.set_readonly(true);
-                    outfile.set_permissions(perms).unwrap();
-                },
-                _ => (),
-            };
+            if let Ok(m) = outfile.metadata() {
+                let mut perms = m.permissions();
+                perms.set_readonly(true);
+                outfile.set_permissions(perms).unwrap();
+            }
         }
 
         println!();
