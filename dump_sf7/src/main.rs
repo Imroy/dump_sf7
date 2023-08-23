@@ -156,16 +156,16 @@ fn main() -> std::io::Result<()> {
         if !raw {
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
-                outfile.write(convert_utf8(&contents, &charmap).as_str().as_bytes())?;
+                outfile.write_all(convert_utf8(&contents, &charmap).as_str().as_bytes())?;
             } else if file.file_type == FileType::NonAscii
                 && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
-                    outfile.write(detokenise(&contents, &charmap).as_str().as_bytes())?;
+                    outfile.write_all(detokenise(&contents, &charmap).as_str().as_bytes())?;
                 } else {
-                    outfile.write(&contents)?;
+                    outfile.write_all(&contents)?;
                 }
         } else {
-            outfile.write(&contents)?;
+            outfile.write_all(&contents)?;
         }
 
         if file.readonly {
