@@ -90,7 +90,7 @@ fn usage(progname: &str, opts: Options) {
     eprintln!("    If file names or wildcards are listed, only matching files will be processed.");
 }
 
-fn main() {
+fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let progname = args[0].clone();
 
@@ -107,7 +107,7 @@ fn main() {
     };
     if matches.opt_present("h") || matches.free.is_empty() {
         usage(&progname, opts);
-        return;
+        return Ok(());
     }
 
     let only_list = matches.opt_present("l");
@@ -117,16 +117,16 @@ fn main() {
 
     let mut disk = Disk::new();
     {
-        let mut file = File::open(matches.free[0].clone()).unwrap();
+        let mut file = File::open(matches.free[0].clone())?;
         let mut disk_buf = Vec::new();
-        file.read_to_end(&mut disk_buf).unwrap();
+        file.read_to_end(&mut disk_buf)?;
         disk.load_data(&disk_buf);
     }
 
     if disk.is_sys() {
         println!("System disk: {}", disk.name(&charmap));
-        let mut file = File::create("IPL.bin").unwrap();
-        file.write_all(disk.ipl()).unwrap();
+        let mut file = File::create("IPL.bin")?;
+        file.write_all(disk.ipl())?;
         println!("Wrote initial program loader to IPL.bin");
     }
 
@@ -155,30 +155,32 @@ fn main() {
         }
 
         let contents = file.read();
-        let mut outfile = File::create(&file.name).unwrap();
+        let mut outfile = File::create(&file.name)?;
         if !raw {
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
-                outfile.write(convert_utf8(&contents, &charmap).as_str().as_bytes()).unwrap();
+                outfile.write(convert_utf8(&contents, &charmap).as_str().as_bytes())?;
             } else if file.file_type == FileType::NonAscii
                 && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
-                    outfile.write(detokenise(&contents, &charmap).as_str().as_bytes()).unwrap();
+                    outfile.write(detokenise(&contents, &charmap).as_str().as_bytes())?;
                 } else {
-                    outfile.write(&contents).unwrap();
+                    outfile.write(&contents)?;
                 }
         } else {
-            outfile.write(&contents).unwrap();
+            outfile.write(&contents)?;
         }
 
         if file.readonly {
             if let Ok(m) = outfile.metadata() {
                 let mut perms = m.permissions();
                 perms.set_readonly(true);
-                outfile.set_permissions(perms).unwrap();
+                outfile.set_permissions(perms)?;
             }
         }
 
         println!();
     }
+
+    Ok(())
 }
