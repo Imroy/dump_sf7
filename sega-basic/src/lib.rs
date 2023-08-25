@@ -122,7 +122,7 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
     let mut i = 0;
     while i < bytes.len() {
         // First byte is the line length (after the line number)
-        let line_length = bytes[i];
+        let line_length = bytes[i] as usize;
         if line_length == 0 {
             break;
         }
@@ -140,8 +140,8 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
         output.push(' ');
 
         // Detokenise the contents
-        detokenise_line(&mut output, &bytes[i..i + (line_length as usize)], charmap);
-        i += line_length as usize;
+        detokenise_line(&mut output, &bytes[i..i + line_length], charmap);
+        i += line_length;
 
         output.push('\x0a');
         i += 1;
