@@ -101,19 +101,8 @@ pub const MAX_DIR_ENTRIES: usize = (12 * SECTOR_SIZE) / DIR_ENTRY_SIZE;
 #[derive(Clone, Default, Debug)]
 pub struct Disk {
     data: Vec<u8>,
-}
 
-/// SF-7000 file
-#[derive(Clone, Debug)]
-pub struct File<'a> {
-    raw_name: Vec<u8>,
-    pub name: String,
-    pub first_cluster: u8,
-    pub file_type: FileType,
-    pub readonly: bool,
-    disk: &'a Disk,
 }
-
 
 impl Disk {
     /// Constructor
@@ -186,6 +175,29 @@ impl Disk {
     }
 }
 
+
+/// SF-7000 file
+#[derive(Clone, Debug)]
+pub struct File<'a> {
+    /// Raw file name bytes
+    raw_name: Vec<u8>,
+
+    /// File name
+    pub name: String,
+
+    /// Index of first cluster
+    first_cluster: u8,
+
+    /// File type
+    pub file_type: FileType,
+
+    /// Is the file read-only?
+    pub readonly: bool,
+
+    /// Reference to disk structure this file is on
+    disk: &'a Disk,
+
+}
 
 const FAT_LAST_CLUSTER_MASK: u8		= 0xf0;
 const FAT_LAST_CLUSTER_PREFIX: u8	= 0xc0;
