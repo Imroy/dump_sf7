@@ -61,7 +61,7 @@ pub const DISK_USER_START: usize	= 21 * TRACK_SIZE;
 pub const DISK_USER_END: usize		= DISK_SIZE;
 
 /// File types as stored on disk
-#[derive(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum FileType {
     NonAscii = 0,
     Ascii = 1,
@@ -98,11 +98,13 @@ pub const DIR_ENTRY_SIZE: usize = 16;
 pub const MAX_DIR_ENTRIES: usize = (12 * SECTOR_SIZE) / DIR_ENTRY_SIZE;
 
 /// SF-7000 disk image
+#[derive(Clone, Default, Debug)]
 pub struct Disk {
     data: Vec<u8>,
 }
 
 /// SF-7000 file
+#[derive(Clone, Debug)]
 pub struct File<'a> {
     raw_name: Vec<u8>,
     pub name: String,
