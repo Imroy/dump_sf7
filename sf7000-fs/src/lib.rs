@@ -157,7 +157,6 @@ impl Disk {
             utf8_filename = utf8_filename.replace('/', "--");
 
             files.push(File {
-                raw_name: name.to_vec(),
                 name: utf8_filename,
                 first_cluster: self.data[entry_start + 12],
                 file_type: (self.data[entry_start + 13] & FILE_ATTR_TYPE_MASK).try_into().unwrap(),
@@ -179,9 +178,6 @@ impl Disk {
 /// SF-7000 file
 #[derive(Clone, Debug)]
 pub struct File<'a> {
-    /// Raw file name bytes
-    raw_name: Vec<u8>,
-
     /// File name
     pub name: String,
 
