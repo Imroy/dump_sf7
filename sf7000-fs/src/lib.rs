@@ -19,6 +19,7 @@
 use std::fmt;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use sc3000-charset::convert_utf8;
 
