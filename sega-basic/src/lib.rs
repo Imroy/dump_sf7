@@ -99,7 +99,7 @@ fn detokenise_line(output: &mut String, input: &[u8], charmap: &HashMap<u8, char
             output.push_str(FUNCS[b]);
             continue;
         }
-        use_funcs = false;
+        use_funcs = true;
 
         if TOKENS.contains_key(b) {
             output.push_str(TOKENS[b]);
