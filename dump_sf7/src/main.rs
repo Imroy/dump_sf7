@@ -161,9 +161,11 @@ fn main() -> std::io::Result<()> {
                     print!("\t[BASIC]");
                     outfile.write_all(detokenise(&contents, to_unicode).as_str().as_bytes())?;
                 } else {
+                    print!("\t[Raw]");
                     outfile.write_all(&contents)?;
                 }
         } else {
+            print!("\t[Raw]");
             outfile.write_all(&contents)?;
         }
 
