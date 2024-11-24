@@ -70,42 +70,53 @@ lazy_static! {
     ]);
 }
 
-fn detokenise_line(output: &mut String, input: &[u8], charmap: &HashMap<u8, char>) {
+fn detokenise_line<F>(output: &mut String, input: &[u8], to_unicode: F)
+where
+    F: Fn(&[u8]) -> String
+{
     let mut use_funcs = false;
-    let mut is_text = false;
+    let mut is_string = false;
+    let mut temp_bytes = vec![];
 
     for b in input {
         // Ordinary ASCII characters
-        if (*b >= 32) && (*b < 127) {
-            output.push(char::from(*b));
+        if *b < 127 {
+            temp_bytes.push(*b);
             if *b == b':' {
                 use_funcs = false;
             } else if *b == b'"' {
-                is_text = !is_text;
+                is_string = !is_string;
             }
             continue;
         }
 
-        if is_text {
-            if charmap.contains_key(b) {
-                output.push(charmap[b]);
+        // Only process high-value bytes as characters if we're in a quoted string
+        if is_string {
+            temp_bytes.push(*b);
+            continue;
+        }
+
+        if use_funcs {
+            if let Some((_, funcname)) = FUNCS.get_key_value(b) {
+                if temp_bytes.len() > 0 {
+                    output.push_str(&to_unicode(temp_bytes.as_slice()));
+                    temp_bytes.clear();
+                }
+                output.push_str(*funcname);
                 continue;
             }
-            output.push(char::from(*b));
-            continue;
-        }
-
-        if use_funcs && FUNCS.contains_key(b) {
-            output.push_str(FUNCS[b]);
-            continue;
         }
         use_funcs = true;
 
-        if TOKENS.contains_key(b) {
-            output.push_str(TOKENS[b]);
+        if let Some((_, tokname)) = TOKENS.get_key_value(b) {
+            if temp_bytes.len() > 0 {
+                output.push_str(&to_unicode(temp_bytes.as_slice()));
+                temp_bytes.clear();
+            }
+            output.push_str(*tokname);
 
             if *b == 0x90 {
-                is_text = true;
+                is_string = true;
             }
 
             continue;
@@ -113,9 +124,17 @@ fn detokenise_line(output: &mut String, input: &[u8], charmap: &HashMap<u8, char
 
         // ?
     }
+
+    if temp_bytes.len() > 0 {
+        output.push_str(&to_unicode(temp_bytes.as_slice()));
+    }
 }
 
-pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
+/// Detokenise a byte slice of data holding BASIC source code into a Unicode string
+pub fn detokenise<F>(bytes: &[u8], to_unicode: F) -> String
+where
+    F: Fn(&[u8]) -> String
+{
     let mut output = String::new();
     output.reserve(bytes.len() * 10);
 
@@ -140,7 +159,7 @@ pub fn detokenise(bytes: &[u8], charmap: &HashMap<u8, char>) -> String {
         output.push(' ');
 
         // Detokenise the contents
-        detokenise_line(&mut output, &bytes[i..i + line_length], charmap);
+        detokenise_line(&mut output, &bytes[i..i + line_length], &to_unicode);
         i += line_length;
 
         output.push('\x0a');

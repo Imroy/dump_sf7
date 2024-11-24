@@ -17,11 +17,8 @@
 */
 
 use std::fmt;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-
-use sc3000-charset::convert_utf8;
 
 // Size of each disk (each side is read seperately)
 pub const TRACKS_PER_DISK: usize = 40;
@@ -62,23 +59,12 @@ pub const DISK_USER_START: usize	= 21 * TRACK_SIZE;
 pub const DISK_USER_END: usize		= DISK_SIZE;
 
 /// File types as stored on disk
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, IntoPrimitive, TryFromPrimitive)]
+#[repr(u8)]
 pub enum FileType {
     NonAscii = 0,
     Ascii = 1,
     Hexadecimal = 2,
-}
-
-impl TryFrom<u8> for FileType {
-    type Error = ();
-    fn try_from(val: u8) -> Result<Self, Self::Error> {
-        match val {
-            x if x == FileType::NonAscii as u8 => Ok(FileType::NonAscii),
-            x if x == FileType::Ascii as u8 => Ok(FileType::Ascii),
-            x if x == FileType::Hexadecimal as u8 => Ok(FileType::Hexadecimal),
-            _ => Err(()),
-        }
-    }
 }
 
 impl fmt::Display for FileType {
@@ -122,8 +108,11 @@ impl Disk {
     }
 
     /// Disk name
-    pub fn name(&self, charmap: &HashMap<u8, char>) -> String {
-        convert_utf8(&self.data[DISK_NAME_START..DISK_NAME_END], charmap)
+    pub fn name<F>(&self, to_unicode: F) -> String
+    where
+        F: Fn(&[u8]) -> String
+    {
+        to_unicode(&self.data[DISK_NAME_START..DISK_NAME_END])
     }
 
     /// Initial Program Loader
@@ -132,7 +121,10 @@ impl Disk {
     }
 
     /// List the files on disk
-    pub fn list_directory(&self, charmap: &HashMap<u8, char>) -> Vec<File> {
+    pub fn list_directory<F>(&self, to_unicode: F) -> Vec<File>
+    where
+        F: Fn(&[u8]) -> String
+    {
         let mut files: Vec<File> = Vec::new();
 
         for i in 0..MAX_DIR_ENTRIES {
@@ -142,7 +134,7 @@ impl Disk {
                 continue;
             }
 
-            let mut utf8_filename = convert_utf8(name, charmap);
+            let mut utf8_filename = to_unicode(name);
             let (mut name_part, mut ext_part) = utf8_filename.split_at(8);
             while name_part.ends_with(' ') {
                 name_part = name_part.strip_suffix(' ').unwrap();

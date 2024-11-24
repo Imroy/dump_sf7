@@ -26,7 +26,6 @@ use std::env;
 use sega_basic::*;
 use sc3000_charset::*;
 use sf7000_fs::*;
-use dump_sf7::convert_utf8;
 
 // Based on https://www.geeksforgeeks.org/wildcard-pattern-matching/
 // Converted to Rust
@@ -108,7 +107,7 @@ fn main() -> std::io::Result<()> {
     }
 
     let only_list = matches.opt_present("l");
-    let charmap = if matches.opt_present("j") { gen_japanese_charmap() } else { gen_export_charmap() };
+    let to_unicode = if matches.opt_present("j") { convert_japanese_to_unicode } else { convert_export_to_unicode };
     let raw = matches.opt_present("r");
     let all_basic = matches.opt_present("b");
 
@@ -121,7 +120,7 @@ fn main() -> std::io::Result<()> {
     }
 
     if disk.is_sys() {
-        println!("System disk: {}", disk.name(&charmap));
+        println!("System disk: {}", disk.name(to_unicode));
         let mut file = File::create("IPL.bin")?;
         file.write_all(disk.ipl())?;
         println!("Wrote initial program loader to IPL.bin");
@@ -129,7 +128,7 @@ fn main() -> std::io::Result<()> {
 
     let wildcards = &matches.free[1..];
 
-    let files = disk.list_directory(&charmap);
+    let files = disk.list_directory(to_unicode);
     for file in files {
         let mut matches = false;
         if !wildcards.is_empty() {
@@ -156,11 +155,11 @@ fn main() -> std::io::Result<()> {
         if !raw {
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
-                outfile.write_all(convert_utf8(&contents, &charmap).as_str().as_bytes())?;
+                outfile.write_all(to_unicode(&contents).as_str().as_bytes())?;
             } else if file.file_type == FileType::NonAscii
                 && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
-                    outfile.write_all(detokenise(&contents, &charmap).as_str().as_bytes())?;
+                    outfile.write_all(detokenise(&contents, to_unicode).as_str().as_bytes())?;
                 } else {
                     outfile.write_all(&contents)?;
                 }
