@@ -16,6 +16,8 @@
   along with this library.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+//! Sega SC-3000 character map routines
+
 #![feature(ascii_char)]
 
 #[macro_use]

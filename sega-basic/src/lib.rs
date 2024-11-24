@@ -16,6 +16,10 @@
   along with this library.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+//! Sega BASIC routines
+//!
+//! TODO: a function to tokenise source code
+
 #[macro_use]
 extern crate lazy_static;
 

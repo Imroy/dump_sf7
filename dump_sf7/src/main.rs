@@ -27,8 +27,12 @@ use sega_basic::*;
 use sc3000_charset::*;
 use sf7000_fs::*;
 
-// Based on https://www.geeksforgeeks.org/wildcard-pattern-matching/
-// Converted to Rust
+/// Match an input string against a pattern.
+///
+/// Based on [this Wildcard Pattern Matching example](https://www.geeksforgeeks.org/wildcard-pattern-matching/) on GeeksforGeeks.
+/// Converted to Rust.
+///
+/// Returns `true` if it matches.
 pub fn strmatch(input: &str, pat: &str) -> bool {
     // Convert strings into vectors of characters
     // i.e UTF-8 bytes into Unicode code points

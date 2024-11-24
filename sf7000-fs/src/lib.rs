@@ -16,54 +16,81 @@
   along with this library.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+//! Sega SF-7000 Super Control Station disk/file routines
+
 use std::fmt;
 use std::collections::HashSet;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-// Size of each disk (each side is read seperately)
+/// Tracks per disk (each side is read seperately)
 pub const TRACKS_PER_DISK: usize = 40;
+/// Sectors per track
 pub const SECTORS_PER_TRACK: usize = 16;
+/// Size of each sector
 pub const SECTOR_SIZE: usize = 256;
 
-// Derived sizes
+/// Size of each track (derived from SECTOR_SIZE and SECTORS_PER_TRACK)
 pub const TRACK_SIZE: usize = SECTOR_SIZE * SECTORS_PER_TRACK;
+/// Size of one side of a disk (derived from TRACK_SIZE and TRACKS_PER_DISK)
 pub const DISK_SIZE: usize = TRACK_SIZE * TRACKS_PER_DISK;
 
-// 'Clusters' is used by the file system
+/// Number of sectors in a 'cluster' used by the file system
 pub const SECTORS_PER_CLUSTER: usize = 4;
+/// Size of each cluster (derived from SECTOR_SIZE and SECTORS_PER_CLUSTER)
 pub const CLUSTER_SIZE: usize = SECTOR_SIZE * SECTORS_PER_CLUSTER;
 
-// Disk structure constants
+/// Offset of disk ID start
 pub const DISK_ID_START: usize		= 0;
+/// Offset of disk ID end
 pub const DISK_ID_END: usize		= 4;
 
+/// Offset of disk name start
 pub const DISK_NAME_START: usize	= 4;
+/// Offset of disk name end
 pub const DISK_NAME_END: usize		= 32;
 
+/// Offset of initial program loader start
 pub const DISK_IPL_START: usize		= 32;
+/// Offset of initial program loader end (end of first sector)
 pub const DISK_IPL_END: usize		= SECTOR_SIZE;
 
+/// Offset of reserved area start
 pub const DISK_RESERVED_0_START: usize	= SECTOR_SIZE;
+/// Offset of reserved area end (end of first track)
 pub const DISK_RESERVED_0_END: usize	= TRACK_SIZE;
 
+/// Offset of system programs start (second track)
 pub const DISK_SYSTEM_PROGRAMS_START: usize = TRACK_SIZE;
+/// Offset of system programs end (20 tracks later)
 pub const DISK_SYSTEM_PROGRAMS_END: usize = 20 * TRACK_SIZE;
 
-pub const DISK_DIRECTORY_START: usize	= 20 * TRACK_SIZE;
-pub const DISK_DIRECTORY_END: usize	= (20 * TRACK_SIZE) + (12 * SECTOR_SIZE);
+/// Offset of directory start (after system programs)
+pub const DISK_DIRECTORY_START: usize	= DISK_SYSTEM_PROGRAMS_END;
+/// Offset of directory end (12 sectors later)
+pub const DISK_DIRECTORY_END: usize	= DISK_DIRECTORY_START + (12 * SECTOR_SIZE);
 
-pub const DISK_FAT_START: usize		= (20 * TRACK_SIZE) + (12 * SECTOR_SIZE);
+/// Offset of file allocation table start (after directory)
+pub const DISK_FAT_START: usize		= DISK_DIRECTORY_END;
+/// Offset of file allocation table end
 pub const DISK_FAT_END: usize		= 21 * TRACK_SIZE;
 
-pub const DISK_USER_START: usize	= 21 * TRACK_SIZE;
+/// Offset of user data start (after FAT)
+pub const DISK_USER_START: usize	= DISK_FAT_END;
+/// Offset of user data end (end of disk)
 pub const DISK_USER_END: usize		= DISK_SIZE;
+
 
 /// File types as stored on disk
 #[derive(Copy, Clone, PartialEq, Debug, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum FileType {
+    /// Non-ASCII file (probably tokenised BASIC)
     NonAscii = 0,
+
+    /// ASCII file
     Ascii = 1,
+
+    /// Hexadecimal (probably raw data)
     Hexadecimal = 2,
 }
 
@@ -75,13 +102,16 @@ impl fmt::Display for FileType {
             FileType::Hexadecimal => write!(f, "hexadecimal"),
         }
     }
+
 }
 
 
 const FILE_ATTR_TYPE_MASK: u8	= 0x0f;
 const FILE_ATTR_RO: u8		= 0x80;
 
+/// Size of each directory entry
 pub const DIR_ENTRY_SIZE: usize = 16;
+/// Maxinum number of directory entries
 pub const MAX_DIR_ENTRIES: usize = (12 * SECTOR_SIZE) / DIR_ENTRY_SIZE;
 
 /// SF-7000 disk image
