@@ -159,11 +159,11 @@ fn main() -> std::io::Result<()> {
         if !raw {
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
-                outfile.write_all(to_unicode(&contents).as_str().as_bytes())?;
+                outfile.write_all(to_unicode(&contents).as_bytes())?;
             } else if file.file_type == FileType::NonAscii
                 && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
-                    outfile.write_all(detokenise(&contents, to_unicode).as_str().as_bytes())?;
+                    outfile.write_all(detokenise(&contents, to_unicode).as_bytes())?;
                 } else {
                     print!("\t[Raw]");
                     outfile.write_all(&contents)?;

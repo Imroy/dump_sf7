@@ -102,22 +102,22 @@ where
 
         if use_funcs {
             if let Some((_, funcname)) = FUNCS.get_key_value(b) {
-                if temp_bytes.len() > 0 {
+                if !temp_bytes.is_empty() {
                     output.push_str(&to_unicode(temp_bytes.as_slice()));
                     temp_bytes.clear();
                 }
-                output.push_str(*funcname);
+                output.push_str(funcname);
                 continue;
             }
         }
         use_funcs = true;
 
         if let Some((_, tokname)) = TOKENS.get_key_value(b) {
-            if temp_bytes.len() > 0 {
+            if !temp_bytes.is_empty() {
                 output.push_str(&to_unicode(temp_bytes.as_slice()));
                 temp_bytes.clear();
             }
-            output.push_str(*tokname);
+            output.push_str(tokname);
 
             if *b == 0x90 {
                 is_string = true;
@@ -129,7 +129,7 @@ where
         // ?
     }
 
-    if temp_bytes.len() > 0 {
+    if !temp_bytes.is_empty() {
         output.push_str(&to_unicode(temp_bytes.as_slice()));
     }
 }

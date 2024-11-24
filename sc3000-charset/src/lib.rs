@@ -148,7 +148,7 @@ pub fn convert_japanese_to_unicode(source: &[u8]) -> String {
             continue;
         }
         // Characters in the Japanese charmap result in the value
-        if let Some((_, c)) = JAPANESE_CHARMAP.get_key_value(&src_byte) {
+        if let Some((_, c)) = JAPANESE_CHARMAP.get_key_value(src_byte) {
             dest.push(*c);
             continue;
         }
