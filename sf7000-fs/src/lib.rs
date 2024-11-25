@@ -134,7 +134,7 @@ impl Disk {
 
     /// Is this a system disk?
     pub fn is_sys(&self) -> bool {
-        &self.data[DISK_ID_START..DISK_ID_START + 4] == b"SYS:"
+        &self.data[DISK_ID_START..DISK_ID_END] == b"SYS:"
     }
 
     /// Disk name
