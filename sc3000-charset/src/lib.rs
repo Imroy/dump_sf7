@@ -156,6 +156,10 @@ static EXPORT_CHARLIST: [(u8, char); 97] = [
 
 lazy_static! {
     static ref JAPANESE_CHARMAP: HashMap<u8, char> = HashMap::from(JAPANESE_CHARLIST);
+    static ref JAPANESE_REVERSE_CHARMAP: HashMap<char, u8> = JAPANESE_CHARLIST
+        .iter()
+        .map(|(k, v)| (*v, *k))
+        .collect();
     // Unused characters in Japanese charmap
     static ref JAPANESE_UNUSED: HashSet<u8> = HashSet::from([ 0xff ]);
 
@@ -164,6 +168,10 @@ lazy_static! {
                                                       0xf9, 0xfa, 0xfb, 0xfc ]);
 
     static ref EXPORT_CHARMAP: HashMap<u8, char> = HashMap::from(EXPORT_CHARLIST);
+    static ref EXPORT_REVERSE_CHARMAP: HashMap<char, u8> = EXPORT_CHARLIST
+        .iter()
+        .map(|(k, v)| (*v, *k))
+        .collect();
     // Unused characters in 'Export' charmap
     static ref EXPORT_UNUSED: HashSet<u8> = HashSet::from([ 0xd0, 0xd1, 0xd2, 0xd3,
                                                             0xd4, 0xd5, 0xd6, 0xd7,
@@ -203,6 +211,24 @@ pub fn convert_japanese_to_unicode(source: &[u8]) -> String {
 
 }
 
+/// Convert a Unicode string to a byte vector of Japanese SC-3000 characters
+pub fn convert_unicode_to_japanese(source: &str) -> Vec<u8> {
+    let mut dest: Vec<u8> = Vec::with_capacity(source.len());
+
+    for src_char in source.chars() {
+        if let Some((_, b)) = JAPANESE_REVERSE_CHARMAP.get_key_value(&src_char) {
+            dest.push(*b);
+            continue;
+        }
+        if let Some(byte) = &src_char.as_ascii() {
+            dest.push((*byte).into());
+        }
+    }
+
+    dest.shrink_to_fit();
+    dest
+}
+
 /// Convert a byte slice of 'Export' SC-3000 characters to a Unicode string
 pub fn convert_export_to_unicode(source: &[u8]) -> String {
     let mut dest = "".to_string();
@@ -238,4 +264,28 @@ pub fn convert_export_to_unicode(source: &[u8]) -> String {
     dest.shrink_to_fit();
     dest
 
+}
+
+/// Convert a Unicode string to a byte vector of 'Export' SC-3000 characters
+pub fn convert_unicode_to_export(source: &str) -> Vec<u8> {
+    let mut dest: Vec<u8> = Vec::with_capacity(source.len());
+
+    for src_char in source.chars() {
+        // Handle Æ
+        if src_char == '\u{00c6}' {
+            dest.push(0xce);	// "Combining half-A for Æ"
+            dest.push(0x45);	// 'E'
+            continue;
+        }
+        if let Some((_, b)) = EXPORT_REVERSE_CHARMAP.get_key_value(&src_char) {
+            dest.push(*b);
+            continue;
+        }
+        if let Some(byte) = &src_char.as_ascii() {
+            dest.push((*byte).into());
+        }
+    }
+
+    dest.shrink_to_fit();
+    dest
 }
