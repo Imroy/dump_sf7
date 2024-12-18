@@ -68,6 +68,7 @@ extern crate lazy_static;
 
 use std::collections::{HashMap,HashSet};
 
+// List of Japanese characters and their substitutions
 static JAPANESE_CHARLIST: [(u8, char); 122] = [
     ( 0x0d, '\x0a' ),
 
@@ -114,6 +115,7 @@ static JAPANESE_CHARLIST: [(u8, char); 122] = [
     ( 0xfd, '\u{01fbc5}' ), ( 0xfe, '\u{00f7}' ),
 ];
 
+// List of 'Export' characters and their substitutions
 static EXPORT_CHARLIST: [(u8, char); 97] = [
     ( 0x0d, '\x0a' ),
 
