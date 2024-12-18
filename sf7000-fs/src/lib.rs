@@ -22,6 +22,8 @@ use std::fmt;
 use std::collections::HashSet;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
+use sc3000_charset::{CharacterSet, SC3000String};
+
 /// Tracks per disk (each side is read seperately)
 pub const TRACKS_PER_DISK: usize = 40;
 /// Sectors per track
@@ -138,11 +140,9 @@ impl Disk {
     }
 
     /// Disk name
-    pub fn name<F>(&self, to_unicode: F) -> String
-    where
-        F: Fn(&[u8]) -> String
-    {
-        to_unicode(&self.data[DISK_NAME_START..DISK_NAME_END])
+    pub fn name(&self, cset: CharacterSet) -> String {
+        SC3000String::from_cset(&self.data[DISK_NAME_START..DISK_NAME_END], cset)
+            .to_string()
     }
 
     /// Initial Program Loader
@@ -151,10 +151,7 @@ impl Disk {
     }
 
     /// List the files on disk
-    pub fn list_directory<F>(&self, to_unicode: F) -> Vec<File>
-    where
-        F: Fn(&[u8]) -> String
-    {
+    pub fn list_directory(&self, cset: CharacterSet) -> Vec<File> {
         let mut files: Vec<File> = Vec::new();
 
         for i in 0..MAX_DIR_ENTRIES {
@@ -164,7 +161,7 @@ impl Disk {
                 continue;
             }
 
-            let mut utf8_filename = to_unicode(name);
+            let mut utf8_filename = SC3000String::from_cset(name, cset).to_string();
             let (mut name_part, mut ext_part) = utf8_filename.split_at(8);
             while name_part.ends_with(' ') {
                 name_part = name_part.strip_suffix(' ').unwrap();

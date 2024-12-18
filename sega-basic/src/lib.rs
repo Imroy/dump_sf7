@@ -25,6 +25,8 @@ extern crate lazy_static;
 
 use std::collections::HashMap;
 
+use sc3000_charset::{CharacterSet, SC3000String};
+
 lazy_static! {
     static ref TOKENS: HashMap<u8, &'static str> = HashMap::from([
         ( 0x81, "INPUT$" ), ( 0x82, "LIST" ), ( 0x83, "LLIST" ),
@@ -74,10 +76,7 @@ lazy_static! {
     ]);
 }
 
-fn detokenise_line<F>(output: &mut String, input: &[u8], to_unicode: F)
-where
-    F: Fn(&[u8]) -> String
-{
+fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
     let mut use_funcs = false;
     let mut is_string = false;
     let mut temp_bytes = vec![];
@@ -103,7 +102,7 @@ where
         if use_funcs {
             if let Some((_, funcname)) = FUNCS.get_key_value(b) {
                 if !temp_bytes.is_empty() {
-                    output.push_str(&to_unicode(temp_bytes.as_slice()));
+                    output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                     temp_bytes.clear();
                 }
                 output.push_str(funcname);
@@ -114,7 +113,7 @@ where
 
         if let Some((_, tokname)) = TOKENS.get_key_value(b) {
             if !temp_bytes.is_empty() {
-                output.push_str(&to_unicode(temp_bytes.as_slice()));
+                output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                 temp_bytes.clear();
             }
             output.push_str(tokname);
@@ -130,15 +129,12 @@ where
     }
 
     if !temp_bytes.is_empty() {
-        output.push_str(&to_unicode(temp_bytes.as_slice()));
+        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
     }
 }
 
 /// Detokenise a byte slice of data holding BASIC source code into a Unicode string
-pub fn detokenise<F>(bytes: &[u8], to_unicode: F) -> String
-where
-    F: Fn(&[u8]) -> String
-{
+pub fn detokenise(bytes: &[u8], cset: CharacterSet) -> String {
     let mut output = String::new();
     output.reserve(bytes.len() * 10);
 
@@ -163,7 +159,7 @@ where
         output.push(' ');
 
         // Detokenise the contents
-        detokenise_line(&mut output, &bytes[i..i + line_length], &to_unicode);
+        detokenise_line(&mut output, &bytes[i..i + line_length], cset);
         i += line_length;
 
         output.push('\x0a');

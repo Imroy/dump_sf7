@@ -111,7 +111,7 @@ fn main() -> std::io::Result<()> {
     }
 
     let only_list = matches.opt_present("l");
-    let to_unicode = if matches.opt_present("j") { convert_japanese_to_unicode } else { convert_export_to_unicode };
+    let cset = if matches.opt_present("j") { CharacterSet::Japanese } else { CharacterSet::Export };
     let raw = matches.opt_present("r");
     let all_basic = matches.opt_present("b");
 
@@ -124,7 +124,7 @@ fn main() -> std::io::Result<()> {
     }
 
     if disk.is_sys() {
-        println!("System disk: {}", disk.name(to_unicode));
+        println!("System disk: {}", disk.name(cset));
         let mut file = File::create("IPL.bin")?;
         file.write_all(disk.ipl())?;
         println!("Wrote initial program loader to IPL.bin");
@@ -132,7 +132,7 @@ fn main() -> std::io::Result<()> {
 
     let wildcards = &matches.free[1..];
 
-    let files = disk.list_directory(to_unicode);
+    let files = disk.list_directory(cset);
     for file in files {
         let mut matches = false;
         if !wildcards.is_empty() {
@@ -159,11 +159,11 @@ fn main() -> std::io::Result<()> {
         if !raw {
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
-                outfile.write_all(to_unicode(&contents).as_bytes())?;
+                outfile.write_all(SC3000String::from_cset(&contents, cset).to_string().as_bytes())?;
             } else if file.file_type == FileType::NonAscii
                 && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
-                    outfile.write_all(detokenise(&contents, to_unicode).as_bytes())?;
+                    outfile.write_all(detokenise(&contents, cset).as_bytes())?;
                 } else {
                     print!("\t[Raw]");
                     outfile.write_all(&contents)?;

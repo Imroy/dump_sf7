@@ -186,6 +186,184 @@ lazy_static! {
 
 }
 
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ConversionError {
+    NonRepresentableCharacterFound,
+    BufferTooSmall,
+}
+
+pub type Result<T> = core::result::Result<T, ConversionError>;
+
+#[derive(Copy, Clone, Debug)]
+pub enum CharacterSet {
+    /// Character set used by Japanese models
+    Japanese,
+
+    /// Character set used by 'Export' models i.e for use with Western European languages
+    Export,
+}
+
+/// A struct for holding a string of text from an SC-3000
+#[derive(Clone, Debug)]
+pub struct SC3000String {
+    cset: CharacterSet,
+    bytes: Box<[u8]>,
+}
+
+impl SC3000String {
+    /// Constructor from Japanese bytes
+    pub fn from_japanese(b: &[u8]) -> Self {
+        Self {
+            cset: CharacterSet::Japanese,
+            bytes: b.into(),
+        }
+    }
+
+    /// Constructor from 'Export' bytes
+    pub fn from_export(b: &[u8]) -> Self {
+        Self {
+            cset: CharacterSet::Export,
+            bytes: b.into(),
+        }
+    }
+
+    /// Constructor from bytes and a [CharacterSet]
+    pub fn from_cset(b: &[u8], cset: CharacterSet) -> Self {
+        Self {
+            cset,
+            bytes: b.into(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.bytes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bytes.len() == 0
+    }
+
+}
+
+impl core::fmt::Display for SC3000String {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", <SC3000String as Into<String>>::into(self.clone()))
+    }
+}
+
+impl From<(&[u8], CharacterSet)> for SC3000String {
+    fn from((b, cs): (&[u8], CharacterSet)) -> Self {
+        Self {
+            cset: cs,
+            bytes: b.into(),
+        }
+    }
+
+}
+
+impl<const N: usize> From<([u8; N], CharacterSet)> for SC3000String {
+    fn from((b, cs): ([u8; N], CharacterSet)) -> Self {
+        Self {
+            cset: cs,
+            bytes: Box::new(b),
+        }
+    }
+
+}
+
+impl<const N: usize> From<(&[u8; N], CharacterSet)> for SC3000String {
+    fn from((b, cs): (&[u8; N], CharacterSet)) -> Self {
+        Self {
+            cset: cs,
+            bytes: Box::new(*b),
+        }
+    }
+
+}
+
+impl TryFrom<&str> for SC3000String {
+    type Error = ConversionError;
+
+    /// Try to make an SC3000String from a Unicode str, guessing the character set
+    fn try_from(t: &str) -> Result<Self> {
+        let cs = guess_character_set(t)?;
+        Ok(Self {
+            cset: cs,
+            bytes: match cs {
+                CharacterSet::Japanese => convert_unicode_to_japanese(t),
+                CharacterSet::Export => convert_unicode_to_export(t),
+            }.into(),
+        })
+    }
+
+}
+
+impl TryFrom<&String> for SC3000String {
+    type Error = ConversionError;
+
+    /// Try to make an SC3000String from a Unicode String, guessing the character set
+    fn try_from(t: &String) -> Result<Self> {
+        let cs = guess_character_set(t)?;
+        Ok(Self {
+            cset: cs,
+            bytes: match cs {
+                CharacterSet::Japanese => convert_unicode_to_japanese(t),
+                CharacterSet::Export => convert_unicode_to_export(t),
+            }.into(),
+        })
+    }
+
+}
+
+impl<const N: usize> TryInto<[u8; N]> for SC3000String {
+    type Error = ConversionError;
+
+    fn try_into(self) -> Result<[u8; N]> {
+        if N > self.len() {
+            let mut x: [u8; N] = [0xa0; N];
+            x[..self.len()].copy_from_slice(&self.bytes[..self.len()]);
+            Ok(x)
+        } else {
+            Err(ConversionError::BufferTooSmall)
+        }
+    }
+
+}
+
+impl From<SC3000String> for String {
+    fn from(sc3kstr: SC3000String) -> Self {
+        match sc3kstr.cset {
+            CharacterSet::Japanese => convert_japanese_to_unicode(&sc3kstr.bytes),
+            CharacterSet::Export => convert_export_to_unicode(&sc3kstr.bytes),
+        }
+    }
+
+}
+
+/// Try to guess the best character set of a unicode string
+fn guess_character_set(source: &str) -> Result<CharacterSet> {
+    let mut j_count = 0;
+    let mut e_count = 0;
+    for src_char in source.chars() {
+        if JAPANESE_REVERSE_CHARMAP.contains_key(&src_char) {
+            j_count += 1;
+        }
+        if EXPORT_REVERSE_CHARMAP.contains_key(&src_char) {
+            e_count += 1;
+        }
+    }
+
+    if (j_count == 0) && (e_count == 0) {
+        Err(ConversionError::NonRepresentableCharacterFound)
+    } else if j_count > e_count {
+        Ok(CharacterSet::Japanese)
+    } else {
+        Ok(CharacterSet::Export)
+    }
+}
+
+
 /// Convert a byte slice of Japanese SC-3000 characters to a Unicode string
 pub fn convert_japanese_to_unicode(source: &[u8]) -> String {
     let mut dest = "".to_string();

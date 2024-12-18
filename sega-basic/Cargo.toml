@@ -8,3 +8,4 @@ license = "LGPL-3.0-or-later"
 
 [dependencies]
 lazy_static = "1.4.0"
+sc3000-charset = { path = "../sc3000-charset" }
