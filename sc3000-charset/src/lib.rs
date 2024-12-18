@@ -195,7 +195,8 @@ pub enum ConversionError {
 
 pub type Result<T> = core::result::Result<T, ConversionError>;
 
-#[derive(Copy, Clone, Debug)]
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CharacterSet {
     /// Character set used by Japanese models
     Japanese,
@@ -203,6 +204,31 @@ pub enum CharacterSet {
     /// Character set used by 'Export' models i.e for use with Western European languages
     Export,
 }
+
+impl CharacterSet {
+    fn unused_contains(&self, chr: &u8) -> bool {
+        match self {
+            CharacterSet::Japanese => JAPANESE_UNUSED.contains(chr),
+            CharacterSet::Export => EXPORT_UNUSED.contains(chr),
+        }
+    }
+
+    fn get_key_value(&self, chr: &u8) -> Option<(&u8, &char)> {
+        match self {
+            CharacterSet::Japanese => JAPANESE_CHARMAP.get_key_value(chr),
+            CharacterSet::Export => EXPORT_CHARMAP.get_key_value(chr),
+        }
+    }
+
+    fn get_reverse_key_value(&self, chr: &char) -> Option<(&char, &u8)> {
+        match self {
+            CharacterSet::Japanese => JAPANESE_REVERSE_CHARMAP.get_key_value(chr),
+            CharacterSet::Export => EXPORT_REVERSE_CHARMAP.get_key_value(chr),
+        }
+    }
+
+}
+
 
 /// A struct for holding a string of text from an SC-3000
 #[derive(Clone, Debug)]
@@ -236,6 +262,71 @@ impl SC3000String {
         }
     }
 
+    /// Constructor from a Unicode string and a [CharacterSet]
+    pub fn from_string(source: &str, cset: CharacterSet) -> Self {
+        let mut bytes: Vec<u8> = Vec::with_capacity(source.len());
+
+        for src_char in source.chars() {
+            if cset == CharacterSet::Export {
+                // Handle Æ
+                if src_char == '\u{00c6}' {
+                    bytes.push(0xce);	// "Combining half-A for Æ"
+                    bytes.push(0x45);	// 'E'
+                    continue;
+                }
+            }
+            if let Some((_, b)) = cset.get_reverse_key_value(&src_char) {
+                bytes.push(*b);
+                continue;
+            }
+            if let Some(b) = &src_char.as_ascii() {
+                bytes.push((*b).into());
+            }
+        }
+
+        bytes.shrink_to_fit();
+        Self {
+            cset,
+            bytes: bytes.into(),
+        }
+    }
+
+    /// Convert contained bytes into a Unicode string
+    pub fn to_string(&self) -> String {
+        let mut dest = String::with_capacity(self.len());
+
+        let mut src_iter = self.bytes.iter().peekable();
+        while let Some(&src_byte) = src_iter.next() {
+            if self.cset == CharacterSet::Export {
+                // Handle 0xce "Combining half-A for Æ" followed by 'E'
+                if (src_byte == 0xce) && (src_iter.peek() == Some(&&0x45_u8)) {
+                    dest.push('\u{00c6}');
+                    if src_iter.next().is_none() {
+                        break;
+                    }
+                    continue;
+                }
+            }
+            // Unused and invalid characters result in REPLACEMENT CHARACTER
+            if self.cset.unused_contains(&src_byte) || INVALID.contains(&src_byte) {
+                dest.push('\u{fffd}');
+                continue;
+            }
+            // Characters in the Japanese charmap result in the value
+            if let Some((_, c)) = self.cset.get_key_value(&src_byte) {
+                dest.push(*c);
+                continue;
+            }
+            // Just add the character if it's a valid ASCII code
+            if src_byte < 128 {
+                dest.push(char::from(src_byte));
+            }
+        }
+
+        dest.shrink_to_fit();
+        dest
+    }
+
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
@@ -248,7 +339,7 @@ impl SC3000String {
 
 impl core::fmt::Display for SC3000String {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", <SC3000String as Into<String>>::into(self.clone()))
+        write!(f, "{}", self.to_string())
     }
 }
 
@@ -288,13 +379,7 @@ impl TryFrom<&str> for SC3000String {
     /// Try to make an SC3000String from a Unicode str, guessing the character set
     fn try_from(t: &str) -> Result<Self> {
         let cs = guess_character_set(t)?;
-        Ok(Self {
-            cset: cs,
-            bytes: match cs {
-                CharacterSet::Japanese => convert_unicode_to_japanese(t),
-                CharacterSet::Export => convert_unicode_to_export(t),
-            }.into(),
-        })
+        Ok(Self::from_string(t, cs))
     }
 
 }
@@ -305,13 +390,7 @@ impl TryFrom<&String> for SC3000String {
     /// Try to make an SC3000String from a Unicode String, guessing the character set
     fn try_from(t: &String) -> Result<Self> {
         let cs = guess_character_set(t)?;
-        Ok(Self {
-            cset: cs,
-            bytes: match cs {
-                CharacterSet::Japanese => convert_unicode_to_japanese(t),
-                CharacterSet::Export => convert_unicode_to_export(t),
-            }.into(),
-        })
+        Ok(Self::from_string(t, cs))
     }
 
 }
@@ -331,15 +410,14 @@ impl<const N: usize> TryInto<[u8; N]> for SC3000String {
 
 }
 
+
 impl From<SC3000String> for String {
     fn from(sc3kstr: SC3000String) -> Self {
-        match sc3kstr.cset {
-            CharacterSet::Japanese => convert_japanese_to_unicode(&sc3kstr.bytes),
-            CharacterSet::Export => convert_export_to_unicode(&sc3kstr.bytes),
-        }
+        sc3kstr.to_string()
     }
 
 }
+
 
 /// Try to guess the best character set of a unicode string
 fn guess_character_set(source: &str) -> Result<CharacterSet> {
@@ -361,111 +439,4 @@ fn guess_character_set(source: &str) -> Result<CharacterSet> {
     } else {
         Ok(CharacterSet::Export)
     }
-}
-
-
-/// Convert a byte slice of Japanese SC-3000 characters to a Unicode string
-pub fn convert_japanese_to_unicode(source: &[u8]) -> String {
-    let mut dest = "".to_string();
-    dest.reserve(source.len());
-
-    for src_byte in source {
-        // Unused and invalid characters result in REPLACEMENT CHARACTER
-        if JAPANESE_UNUSED.contains(src_byte) || INVALID.contains(src_byte) {
-            dest.push('\u{fffd}');
-            continue;
-        }
-        // Characters in the Japanese charmap result in the value
-        if let Some((_, c)) = JAPANESE_CHARMAP.get_key_value(src_byte) {
-            dest.push(*c);
-            continue;
-        }
-        // Just add the character if it's a valid ASCII code
-        if *src_byte < 128 {
-            dest.push(char::from(*src_byte));
-        }
-    }
-
-    dest.shrink_to_fit();
-    dest
-
-}
-
-/// Convert a Unicode string to a byte vector of Japanese SC-3000 characters
-pub fn convert_unicode_to_japanese(source: &str) -> Vec<u8> {
-    let mut dest: Vec<u8> = Vec::with_capacity(source.len());
-
-    for src_char in source.chars() {
-        if let Some((_, b)) = JAPANESE_REVERSE_CHARMAP.get_key_value(&src_char) {
-            dest.push(*b);
-            continue;
-        }
-        if let Some(byte) = &src_char.as_ascii() {
-            dest.push((*byte).into());
-        }
-    }
-
-    dest.shrink_to_fit();
-    dest
-}
-
-/// Convert a byte slice of 'Export' SC-3000 characters to a Unicode string
-pub fn convert_export_to_unicode(source: &[u8]) -> String {
-    let mut dest = "".to_string();
-    dest.reserve(source.len());
-
-    let mut src_iter = source.iter().peekable();
-    while let Some(&src_byte) = src_iter.next() {
-        // Handle 0xce "Combining half-A for Æ" followed by 'E'
-        if (src_byte == 0xce) && (src_iter.peek() == Some(&&0x45_u8)) {
-            dest.push('\u{00c6}');
-            if src_iter.next().is_none() {
-                break;
-            }
-            continue;
-        }
-
-        // Unused and invalid characters result in REPLACEMENT CHARACTER
-        if EXPORT_UNUSED.contains(&src_byte) || INVALID.contains(&src_byte) {
-            dest.push('\u{fffd}');
-            continue;
-        }
-        // Characters in the 'Export' charmap result in the value
-        if let Some((_, c)) = EXPORT_CHARMAP.get_key_value(&src_byte) {
-            dest.push(*c);
-            continue;
-        }
-        // Just add the character if it's a valid ASCII code
-        if src_byte < 128 {
-            dest.push(char::from(src_byte));
-        }
-    }
-
-    dest.shrink_to_fit();
-    dest
-
-}
-
-/// Convert a Unicode string to a byte vector of 'Export' SC-3000 characters
-pub fn convert_unicode_to_export(source: &str) -> Vec<u8> {
-    let mut dest: Vec<u8> = Vec::with_capacity(source.len());
-
-    for src_char in source.chars() {
-        // Handle Æ
-        if src_char == '\u{00c6}' {
-            dest.push(0xce);	// "Combining half-A for Æ"
-            dest.push(0x45);	// 'E'
-            continue;
-        }
-        if let Some((_, b)) = EXPORT_REVERSE_CHARMAP.get_key_value(&src_char) {
-            dest.push(*b);
-            continue;
-        }
-        if let Some(byte) = &src_char.as_ascii() {
-            dest.push((*byte).into());
-        }
-    }
-
-    dest.shrink_to_fit();
-    dest
 }
