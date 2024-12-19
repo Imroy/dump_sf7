@@ -17,6 +17,29 @@
 */
 
 //! Sega BASIC routines
+//!
+//! ## Tokens
+//!
+//! |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
+//! |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+//! | **8x** | | INPUT$ | LIST | LLIST | AUTO | DELETE | RUN | CONT | LOAD | SAVE | VERIFY | NEW | RENUM | FILES | LFILES | BOOT |
+//! | **9x** | REM | PRINT | LPRINT | DATA | DEF | INPUT | READ | STOP | END | LET | DIM | FOR | NEXT | GOTO | GOSUB | GO |
+//! | **Ax** | ON | RETURN | ERASE | CURSOR | IF | RESTORE | SCREEN | COLOR | LINE | SOUND | BEEP | CONSOLE | CLS | OUT | CALL | POKE |
+//! | **Bx** | PSET | PRESET | PAINT | BLINE | POSITION | HCOPY | SPRITE | PATTERN | CIRCLE | BCIRCLE | MAG | VPOKE | MOTOR | OPEN | CLOSE | COMSET |
+//! | **Cx** | ^ | * | / | MOD | + | - | <> | >= | <= | > | < | = | NOT | AND | OR | XOR |
+//! | **Dx** | CLOADM | CSAVEM | VERIFYM |  |  |  |  |  |  |  |  |  |  |  |  |  |
+//! | **Ex** | FN | TO | STEP | THEN | TAB | SPC | OUTPUT |  |  |  |  |  |  |  |  |  |
+//!
+//! ## Functions
+//!
+//! After the first token, functions can appear instead.
+//!
+//! |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
+//! |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+//! | **8x** | ABS| RND | SIN | COS | TAN | ASN | ACS | ATN | LOG | LGT | LTW | EXP | RAD | DEG | PI | SQR |
+//! | **9x** | INT | SGN | ASC | LEN | VAL | PEEK | INP | FRE | VPEEK | STICK | STRIG | EOF | LOC | LOD | DSKF | |
+//! | **Ax** | CHR$ | HEX$ | INKEY$ | LEFT$ | RIGHT$ | MID$ | STR$ | TIME$ | | | | | | | | |
+
 
 #[macro_use]
 extern crate lazy_static;
