@@ -340,30 +340,30 @@ impl core::fmt::Display for SC3000String {
 }
 
 impl From<(&[u8], CharacterSet)> for SC3000String {
-    fn from((b, cs): (&[u8], CharacterSet)) -> Self {
+    fn from((bytes, cset): (&[u8], CharacterSet)) -> Self {
         Self {
-            cset: cs,
-            bytes: b.into(),
+            cset,
+            bytes: bytes.into(),
         }
     }
 
 }
 
 impl<const N: usize> From<([u8; N], CharacterSet)> for SC3000String {
-    fn from((b, cs): ([u8; N], CharacterSet)) -> Self {
+    fn from((bytes, cset): ([u8; N], CharacterSet)) -> Self {
         Self {
-            cset: cs,
-            bytes: Box::new(b),
+            cset,
+            bytes: bytes.into(),
         }
     }
 
 }
 
 impl<const N: usize> From<(&[u8; N], CharacterSet)> for SC3000String {
-    fn from((b, cs): (&[u8; N], CharacterSet)) -> Self {
+    fn from((bytes, cset): (&[u8; N], CharacterSet)) -> Self {
         Self {
-            cset: cs,
-            bytes: Box::new(*b),
+            cset,
+            bytes: (*bytes).into(),
         }
     }
 
