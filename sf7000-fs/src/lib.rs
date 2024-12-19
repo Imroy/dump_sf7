@@ -125,8 +125,10 @@ pub struct Disk {
 
 impl Disk {
     /// Constructor
-    pub fn new() -> Disk {
-        Disk { data: Vec::with_capacity(DISK_SIZE) }
+    pub fn new() -> Self {
+        Disk {
+            data: Vec::with_capacity(DISK_SIZE),
+        }
     }
 
     /// Load data into the disk image
@@ -185,7 +187,7 @@ impl Disk {
     }
 
     fn read_sector(&self, sector_num: u16) -> Vec<u8> {
-        let i: usize = (sector_num as usize) * SECTOR_SIZE;
+        let i = (sector_num as usize) * SECTOR_SIZE;
         self.data[i..i + SECTOR_SIZE].to_vec()
     }
 }
@@ -229,7 +231,7 @@ impl File<'_> {
     }
 
     fn fat_entry(&self, cluster_num: u8) -> u8 {
-        self.disk.data[DISK_FAT_START + (cluster_num as usize)]
+        self.disk.data[DISK_FAT_START + cluster_num as usize]
     }
 
     /// Read contents
