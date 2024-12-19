@@ -291,42 +291,6 @@ impl SC3000String {
         }
     }
 
-    /// Convert contained bytes into a Unicode string
-    pub fn to_string(&self) -> String {
-        let mut dest = String::with_capacity(self.len());
-
-        let mut src_iter = self.bytes.iter().peekable();
-        while let Some(&src_byte) = src_iter.next() {
-            if self.cset == CharacterSet::Export {
-                // Handle 0xce "Combining half-A for Æ" followed by 'E'
-                if (src_byte == 0xce) && (src_iter.peek() == Some(&&0x45_u8)) {
-                    dest.push('\u{00c6}');
-                    if src_iter.next().is_none() {
-                        break;
-                    }
-                    continue;
-                }
-            }
-            // Unused and invalid characters result in REPLACEMENT CHARACTER
-            if self.cset.unused_contains(&src_byte) || INVALID.contains(&src_byte) {
-                dest.push('\u{fffd}');
-                continue;
-            }
-            // Characters in the Japanese charmap result in the value
-            if let Some((_, c)) = self.cset.get_key_value(&src_byte) {
-                dest.push(*c);
-                continue;
-            }
-            // Just add the character if it's a valid ASCII code
-            if src_byte < 128 {
-                dest.push(char::from(src_byte));
-            }
-        }
-
-        dest.shrink_to_fit();
-        dest
-    }
-
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
@@ -338,8 +302,37 @@ impl SC3000String {
 }
 
 impl core::fmt::Display for SC3000String {
+    /// Convert contained bytes into Unicode, write to the output formatter
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.to_string())
+        let mut src_iter = self.bytes.iter().peekable();
+        while let Some(&src_byte) = src_iter.next() {
+            if self.cset == CharacterSet::Export {
+                // Handle 0xce "Combining half-A for Æ" followed by 'E'
+                if (src_byte == 0xce) && (src_iter.peek() == Some(&&0x45_u8)) {
+                    write!(f, "\u{00c6}")?;
+                    if src_iter.next().is_none() {
+                        break;
+                    }
+                    continue;
+                }
+            }
+            // Unused and invalid characters result in REPLACEMENT CHARACTER
+            if self.cset.unused_contains(&src_byte) || INVALID.contains(&src_byte) {
+                write!(f, "\u{fffd}")?;
+                continue;
+            }
+            // Characters in the charmap result in the value
+            if let Some((_, c)) = self.cset.get_key_value(&src_byte) {
+                write!(f, "{}", *c)?;
+                continue;
+            }
+            // Just add the character if it's a valid ASCII code
+            if src_byte < 128 {
+                write!(f, "{}", char::from(src_byte))?;
+            }
+        }
+
+        Ok(())
     }
 }
 
