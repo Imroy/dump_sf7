@@ -100,7 +100,7 @@ fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
         }
 
         if use_funcs {
-            if let Some((_, funcname)) = FUNCS.get_key_value(b) {
+            if let Some(funcname) = FUNCS.get(b) {
                 if !temp_bytes.is_empty() {
                     output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                     temp_bytes.clear();
@@ -111,7 +111,7 @@ fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
         }
         use_funcs = true;
 
-        if let Some((_, tokname)) = TOKENS.get_key_value(b) {
+        if let Some(tokname) = TOKENS.get(b) {
             if !temp_bytes.is_empty() {
                 output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                 temp_bytes.clear();
