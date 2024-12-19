@@ -18,7 +18,7 @@
 
 //! Sega BASIC routines
 //!
-//! ## Tokens
+//! ## Commands
 //!
 //! |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
 //! |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
@@ -32,7 +32,7 @@
 //!
 //! ## Functions
 //!
-//! After the first token, functions can appear instead.
+//! After the first command, functions can appear instead.
 //!
 //! |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
 //! |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
@@ -49,7 +49,7 @@ use std::collections::HashMap;
 use sc3000_charset::{CharacterSet, SC3000String};
 
 
-static TOKENLIST: [(u8, &'static str); 89] = [
+static COMMANDLIST: [(u8, &'static str); 89] = [
     ( 0x81, "INPUT$" ), ( 0x82, "LIST" ), ( 0x83, "LLIST" ),
     ( 0x84, "AUTO" ), ( 0x85, "DELETE" ), ( 0x86, "RUN" ), ( 0x87, "CONT" ),
     ( 0x88, "LOAD" ), ( 0x89, "SAVE" ), ( 0x8a, "VERIFY" ), ( 0x8b, "NEW" ),
@@ -97,7 +97,7 @@ static FUNCLIST: [(u8, &'static str); 39] = [
 ];
 
 lazy_static! {
-    static ref TOKENS: HashMap<u8, &'static str> = HashMap::from(TOKENLIST);
+    static ref COMMANDS: HashMap<u8, &'static str> = HashMap::from(COMMANDLIST);
     static ref FUNCS: HashMap<u8, &'static str> = HashMap::from(FUNCLIST);
 }
 
@@ -136,12 +136,12 @@ fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
         }
         use_funcs = true;
 
-        if let Some(tokname) = TOKENS.get(b) {
+        if let Some(cmdname) = COMMANDS.get(b) {
             if !temp_bytes.is_empty() {
                 output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                 temp_bytes.clear();
             }
-            output.push_str(tokname);
+            output.push_str(cmdname);
 
             // REM is essentially a string
             if *b == 0x90 {
@@ -246,19 +246,20 @@ pub fn tokenise_line(line: &str, cset: CharacterSet) -> Option<SC3000String> {
         }
         use_funcs = true;
 
-        if let Some(token_num) = TOKENLIST.iter().position(|t| line[i..].starts_with((*t).1)) {
+        if let Some(command_num) = COMMANDLIST.iter().position(|t| line[i..].starts_with((*t).1)) {
             if !temp_line.is_empty() {
+                //eprintln!("Adding line \"{}\" to bytes", temp_line);
                 bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
                 temp_line.clear();
             }
-            bytes.push(TOKENLIST[token_num].0);
+            bytes.push(COMMANDLIST[command_num].0);
 
             // REM is essentially a string
-            if TOKENLIST[token_num].0 == 0x90 {
+            if COMMANDLIST[command_num].0 == 0x90 {
                 is_string = true;
             }
 
-            i += TOKENLIST[token_num].1.len();
+            i += COMMANDLIST[command_num].1.len();
             continue;
         }
 
