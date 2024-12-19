@@ -116,7 +116,7 @@ static JAPANESE_CHARLIST: [(u8, char); 122] = [
 ];
 
 // List of 'Export' characters and their substitutions
-static EXPORT_CHARLIST: [(u8, char); 97] = [
+static EXPORT_CHARLIST: [(u8, char); 96] = [
     ( 0x0d, '\x0a' ),
 
     ( 0x5c, '\u{00A5}' ), ( 0x5f, '\u{03C0}' ),
@@ -134,7 +134,7 @@ static EXPORT_CHARLIST: [(u8, char); 97] = [
     ( 0xa0, '\u{00C2}' ), ( 0xa1, '\u{01CD}' ), ( 0xa2, '\u{00C1}' ), ( 0xa3, '\u{00C0}' ),
     ( 0xa4, '\u{00C4}' ), ( 0xa5, '\u{00C5}' ), ( 0xa6, '\u{00C3}' ), ( 0xa7, '\u{0100}' ),
     ( 0xa8, '\u{00CA}' ), ( 0xa9, '\u{011A}' ), ( 0xaa, '\u{00CB}' ), ( 0xab, '\u{0112}' ),
-    ( 0xac, '\u{00C9}' ), ( 0xad, '\u{00C8}' ), ( 0xae, '\u{00D1}' ), ( 0xaf, '\u{004E}' ),
+    ( 0xac, '\u{00C9}' ), ( 0xad, '\u{00C8}' ), ( 0xae, '\u{00D1}' ),
 
     ( 0xb0, '\u{01cf}' ), ( 0xb1, '\u{00cc}' ), ( 0xb2, '\u{00cd}' ), ( 0xb3, '\u{00cf}' ),
     ( 0xb4, '\u{00ce}' ), ( 0xb5, '\u{012a}' ), ( 0xb6, '\u{00d4}' ), ( 0xb7, '\u{01d1}' ),
@@ -269,22 +269,33 @@ impl SC3000String {
     pub fn from_string(source: &str, cset: CharacterSet) -> Self {
         let mut bytes: Vec<u8> = Vec::with_capacity(source.len());
 
-        for src_char in source.chars() {
+        let mut i = 0;
+        while i < source.len() {
+            let src_char = source[i..].chars().next().unwrap();
             if cset == CharacterSet::Export {
+                // Handle 0xaf using a combining character
+                if source[i..].starts_with("\u{0302}N") {
+                    bytes.push(0xaf);
+                    i += 3;
+                    continue;
+                }
                 // Handle Æ
                 if src_char == '\u{00c6}' {
                     bytes.push(0xce);	// "Combining half-A for Æ"
                     bytes.push(0x45);	// 'E'
+                    i += 2;
                     continue;
                 }
             }
             if let Some(b) = cset.get_reverse(&src_char) {
                 bytes.push(*b);
+                i += 1;
                 continue;
             }
             if let Some(b) = &src_char.as_ascii() {
                 bytes.push((*b).into());
             }
+            i += 1;
         }
 
         bytes.shrink_to_fit();
@@ -310,6 +321,11 @@ impl core::fmt::Display for SC3000String {
         let mut src_iter = self.bytes.iter().peekable();
         while let Some(&src_byte) = src_iter.next() {
             if self.cset == CharacterSet::Export {
+                // Character 0xaf can be handled with a combining character
+                if src_byte == 0xaf {
+                    write!(f, "\u{0302}N")?;
+                    continue;
+                }
                 // Handle 0xce "Combining half-A for Æ" followed by 'E'
                 if (src_byte == 0xce) && (src_iter.peek() == Some(&&0x45_u8)) {
                     write!(f, "\u{00c6}")?;
