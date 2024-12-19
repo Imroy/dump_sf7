@@ -17,8 +17,6 @@
 */
 
 //! Sega BASIC routines
-//!
-//! TODO: a function to tokenise source code
 
 #[macro_use]
 extern crate lazy_static;
@@ -122,6 +120,7 @@ fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
             }
             output.push_str(tokname);
 
+            // REM is essentially a string
             if *b == 0x90 {
                 is_string = true;
             }
@@ -171,4 +170,115 @@ pub fn detokenise(sc3kstr: &SC3000String) -> String {
 
     output.shrink_to_fit();
     output
+}
+
+/// Tokenise a line of Unicode text into bytes for use in an SC-3000 BASIC file
+pub fn tokenise_line(line: &str, cset: CharacterSet) -> Option<SC3000String> {
+    let mut bytes = Vec::<u8>::new();
+    bytes.push(0x00);	// placeholder - replace with line length later
+
+    let space_i = line.find(' ')?;
+    let lineno = line[0..space_i].parse::<u16>().ok()?;
+    bytes.push((lineno & 0xff) as u8);
+    bytes.push((lineno >> 8) as u8);
+
+    // two unknown bytes
+    bytes.push(0x00);
+    bytes.push(0x00);
+
+    let mut use_funcs = false;
+    let mut is_string = false;
+    let mut temp_line = String::new();
+
+    let mut i = space_i + 1;
+    while i < line.len() {
+        let c = line[i..].chars().next()?;
+
+        // Only process non-ASCII characters if we're in a quoted string
+        if is_string {
+            temp_line.push(c);
+
+            if c == '"' {
+                is_string = false;
+            }
+
+            i += 1;
+            while !line.is_char_boundary(i) {
+                i += 1;
+            }
+            continue;
+        }
+
+        if use_funcs {
+            if let Some(func_num) = FUNCLIST.iter().position(|f| line[i..].starts_with((*f).1)) {
+                if !temp_line.is_empty() {
+                    bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+                    temp_line.clear();
+                }
+                bytes.push(FUNCLIST[func_num].0);
+
+                i += FUNCLIST[func_num].1.len();
+                continue;
+            }
+        }
+        use_funcs = true;
+
+        if let Some(token_num) = TOKENLIST.iter().position(|t| line[i..].starts_with((*t).1)) {
+            if !temp_line.is_empty() {
+                bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+                temp_line.clear();
+            }
+            bytes.push(TOKENLIST[token_num].0);
+
+            // REM is essentially a string
+            if TOKENLIST[token_num].0 == 0x90 {
+                is_string = true;
+            }
+
+            i += TOKENLIST[token_num].1.len();
+            continue;
+        }
+
+        if let Some(b) = &c.as_ascii() {
+            temp_line.push(c);
+            if c == ':' {
+                use_funcs = false;
+            } else if c == '"' {
+                is_string = !is_string;
+            }
+            i += 1;
+            continue;
+        }
+
+        // Just continue on
+        i += 1;
+    }
+
+    if !temp_line.is_empty() {
+        bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+    }
+
+    // replace the line length at the start of the line
+    bytes[0] = (bytes.len() - 5) as u8;
+
+    // Newline
+    bytes.push(0x0d);
+
+    Some(SC3000String {
+        cset,
+        bytes: bytes.into(),
+    })
+}
+
+/// Tokenise a Unicode string into bytes for use in an SC-3000 BASIC file
+pub fn tokenise(source: &str, cset: CharacterSet) -> Option<SC3000String> {
+    let mut output = Vec::<u8>::with_capacity(source.len() / 10);
+
+    for line in source.lines() {
+        let s = tokenise_line(line, cset).unwrap();
+        output.extend(&s.bytes);
+    }
+
+    output.shrink_to_fit();
+    Some(SC3000String::from_cset(output.as_ref(), cset))
 }
