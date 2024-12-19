@@ -196,6 +196,7 @@ pub enum ConversionError {
 pub type Result<T> = core::result::Result<T, ConversionError>;
 
 
+/// The character sets that different models of the SC-3000 used
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CharacterSet {
     /// Character set used by Japanese models
