@@ -236,14 +236,14 @@ impl File<'_> {
 
     /// Read contents
     pub fn read(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
+        let mut contents = Vec::new();
         let mut visited_clusters = HashSet::new();
 
         let mut cluster_num = self.first_cluster;
         while cluster_num < 160 {
             if visited_clusters.contains(&cluster_num) {
                 eprintln!("FAT loop detected when reading file \"{}\".", self.name);
-                return bytes;
+                return contents;
             }
             visited_clusters.insert(cluster_num);
 
@@ -252,16 +252,16 @@ impl File<'_> {
                 let num_sectors = fat_entry & FAT_LAST_CLUSTER_NUM_SECTORS_MASK;
                 let sector_num_start = (cluster_num as u16) * (SECTORS_PER_CLUSTER as u16);
                 for i in 0..num_sectors {
-                    bytes.append(&mut self.disk.read_sector(sector_num_start + i as u16));
+                    contents.append(&mut self.disk.read_sector(sector_num_start + i as u16));
                 }
             } else {
-                bytes.append(&mut self.read_cluster(cluster_num));
+                contents.append(&mut self.read_cluster(cluster_num));
             }
 
             cluster_num = fat_entry;
         }
 
-        bytes
+        contents
     }
 
 }

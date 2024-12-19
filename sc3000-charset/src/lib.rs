@@ -239,26 +239,26 @@ pub struct SC3000String {
 
 impl SC3000String {
     /// Constructor from Japanese bytes
-    pub fn from_japanese(b: &[u8]) -> Self {
+    pub fn from_japanese(bytes: &[u8]) -> Self {
         Self {
             cset: CharacterSet::Japanese,
-            bytes: b.into(),
+            bytes: bytes.into(),
         }
     }
 
     /// Constructor from 'Export' bytes
-    pub fn from_export(b: &[u8]) -> Self {
+    pub fn from_export(bytes: &[u8]) -> Self {
         Self {
             cset: CharacterSet::Export,
-            bytes: b.into(),
+            bytes: bytes.into(),
         }
     }
 
     /// Constructor from bytes and a [CharacterSet]
-    pub fn from_cset(b: &[u8], cset: CharacterSet) -> Self {
+    pub fn from_cset(bytes: &[u8], cset: CharacterSet) -> Self {
         Self {
             cset,
-            bytes: b.into(),
+            bytes: bytes.into(),
         }
     }
 
