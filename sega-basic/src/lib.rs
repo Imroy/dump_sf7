@@ -18,6 +18,21 @@
 
 //! Sega BASIC routines
 //!
+//! ## Line format
+//!
+//! Each line follows this format:
+//! - Content length as one byte
+//! - Line number as two bytes (little endian order)
+//! - Two unknown bytes that are always zero
+//! - Content
+//! - 0x0d as newline character
+//!
+//! Content starts with a 'command' and then any number of text or 'function' bytes.
+//! After a colon (':') another command is given and the format restarts.
+//! Command and function codes have their high bit set, so they can be easily distinguished
+//! from regular ASCII text.
+//! Quoted text strings and REMarks can use the whole [character set](sc3000_charset).
+//!
 //! ## Commands
 //!
 //! |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
