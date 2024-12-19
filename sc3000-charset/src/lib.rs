@@ -213,17 +213,17 @@ impl CharacterSet {
         }
     }
 
-    fn get_key_value(&self, chr: &u8) -> Option<(&u8, &char)> {
+    fn get(&self, byte: &u8) -> Option<&char> {
         match self {
-            CharacterSet::Japanese => JAPANESE_CHARMAP.get_key_value(chr),
-            CharacterSet::Export => EXPORT_CHARMAP.get_key_value(chr),
+            CharacterSet::Japanese => JAPANESE_CHARMAP.get(byte),
+            CharacterSet::Export => EXPORT_CHARMAP.get(byte),
         }
     }
 
-    fn get_reverse_key_value(&self, chr: &char) -> Option<(&char, &u8)> {
+    fn get_reverse(&self, chr: &char) -> Option<&u8> {
         match self {
-            CharacterSet::Japanese => JAPANESE_REVERSE_CHARMAP.get_key_value(chr),
-            CharacterSet::Export => EXPORT_REVERSE_CHARMAP.get_key_value(chr),
+            CharacterSet::Japanese => JAPANESE_REVERSE_CHARMAP.get(chr),
+            CharacterSet::Export => EXPORT_REVERSE_CHARMAP.get(chr),
         }
     }
 
@@ -278,7 +278,7 @@ impl SC3000String {
                     continue;
                 }
             }
-            if let Some((_, b)) = cset.get_reverse_key_value(&src_char) {
+            if let Some(b) = cset.get_reverse(&src_char) {
                 bytes.push(*b);
                 continue;
             }
@@ -325,7 +325,7 @@ impl core::fmt::Display for SC3000String {
                 continue;
             }
             // Characters in the charmap result in the value
-            if let Some((_, c)) = self.cset.get_key_value(&src_byte) {
+            if let Some(c) = self.cset.get(&src_byte) {
                 write!(f, "{}", *c)?;
                 continue;
             }
