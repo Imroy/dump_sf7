@@ -158,13 +158,14 @@ fn main() -> std::io::Result<()> {
         let contents = file.read();
         let mut outfile = File::create(&file.name)?;
         if !raw {
+            let sc3kstr = SC3000String::from_cset(&contents, cset);
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
-                outfile.write_all(SC3000String::from_cset(&contents, cset).to_string().as_bytes())?;
+                outfile.write_all(sc3kstr.to_string().as_bytes())?;
             } else if file.file_type == FileType::NonAscii
                 && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
-                    outfile.write_all(detokenise(&contents, cset).as_bytes())?;
+                    outfile.write_all(detokenise(&sc3kstr).as_bytes())?;
                 } else {
                     print!("\t[Raw]");
                     outfile.write_all(&contents)?;

@@ -233,8 +233,11 @@ impl CharacterSet {
 /// A struct for holding a string of text from an SC-3000
 #[derive(Clone, Debug)]
 pub struct SC3000String {
-    cset: CharacterSet,
-    bytes: Box<[u8]>,
+    /// Character set of this string
+    pub cset: CharacterSet,
+
+    /// The bytes containg the string data
+    pub bytes: Box<[u8]>,
 }
 
 impl SC3000String {

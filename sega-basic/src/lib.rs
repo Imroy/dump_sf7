@@ -134,21 +134,20 @@ fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
 }
 
 /// Detokenise a byte slice of data holding BASIC source code into a Unicode string
-pub fn detokenise(bytes: &[u8], cset: CharacterSet) -> String {
-    let mut output = String::new();
-    output.reserve(bytes.len() * 10);
+pub fn detokenise(sc3kstr: &SC3000String) -> String {
+    let mut output = String::with_capacity(sc3kstr.len() * 10);
 
     let mut i = 0;
-    while i < bytes.len() {
+    while i < sc3kstr.len() {
         // First byte is the line length (after the line number)
-        let line_length = bytes[i] as usize;
+        let line_length = sc3kstr.bytes[i] as usize;
         if line_length == 0 {
             break;
         }
         i += 1;
 
         // Next two bytes are the line number
-        let lineno = (bytes[i] as u16) | ((bytes[i + 1] as u16) << 8);
+        let lineno = (sc3kstr.bytes[i] as u16) | ((sc3kstr.bytes[i + 1] as u16) << 8);
         i += 2;
 
         // Next two bytes?
@@ -159,7 +158,7 @@ pub fn detokenise(bytes: &[u8], cset: CharacterSet) -> String {
         output.push(' ');
 
         // Detokenise the contents
-        detokenise_line(&mut output, &bytes[i..i + line_length], cset);
+        detokenise_line(&mut output, &sc3kstr.bytes[i..i + line_length], sc3kstr.cset);
         i += line_length;
 
         output.push('\x0a');
