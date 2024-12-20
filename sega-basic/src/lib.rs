@@ -114,9 +114,15 @@ lazy_static! {
     static ref FUNCS: HashMap<u8, &'static str> = HashMap::from(FUNCLIST);
 }
 
+#[derive(Copy, Clone, Debug)]
+enum TokenState {
+    Command,
+    Remark,
+    ASCIIAndFuncs,
+    QuotedString,
+}
+
 fn detokenise_line(output: &mut String, line: &[u8], cset: CharacterSet) {
-    let mut use_funcs = false;
-    let mut is_string = false;
     let mut temp_bytes = vec![];
 
     // We don't use the content length in the first byte
@@ -130,56 +136,100 @@ fn detokenise_line(output: &mut String, line: &[u8], cset: CharacterSet) {
     output.push_str(&lineno.to_string());
     output.push(' ');
 
+    let mut state = TokenState::Command;
     let mut j = 5;
     while j < line.len() {
         let b = line[j];
-        // Ordinary ASCII characters
-        if b < 127 {
-            temp_bytes.push(b);
-            if b == b':' {
-                use_funcs = false;
-                is_string = false;
-            } else if b == b'"' {
-                is_string = !is_string;
-            }
-            j += 1;
-            continue;
-        }
+        match state {
+            TokenState::Command => {
+                // Ordinary ASCII character
+                if b < 128 {
+                    temp_bytes.push(b);
+                    if b == b'"' {
+                        state = TokenState::QuotedString;
+                    }
 
-        // Only process high-value bytes as characters if we're in a quoted string
-        if is_string {
-            temp_bytes.push(b);
-            j += 1;
-            continue;
-        }
-
-        if use_funcs {
-            if let Some(funcname) = FUNCS.get(&b) {
-                if !temp_bytes.is_empty() {
-                    output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
-                    temp_bytes.clear();
+                    j += 1;
+                    continue;
                 }
-                output.push_str(funcname);
+
+                if let Some(cmdname) = COMMANDS.get(&b) {
+                    if !temp_bytes.is_empty() {
+                        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
+                        temp_bytes.clear();
+                    }
+                    output.push_str(cmdname);
+
+                    // REM
+                    if b == 0x90 {
+                        state = TokenState::Remark;
+                    } else {
+                        state = TokenState::ASCIIAndFuncs;
+                    };
+
+                    j += 1;
+                    continue;
+                }
+            },
+
+            TokenState::Remark => {
+                // Any 8-bit character
+                temp_bytes.push(b);
+
                 j += 1;
                 continue;
-            }
-        }
-        use_funcs = true;
+            },
 
-        if let Some(cmdname) = COMMANDS.get(&b) {
-            if !temp_bytes.is_empty() {
-                output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
-                temp_bytes.clear();
-            }
-            output.push_str(cmdname);
+            TokenState::ASCIIAndFuncs => {
+                // Ordinary ASCII character
+                if b < 128 {
+                    temp_bytes.push(b);
+                    if b == b':' {
+                        state = TokenState::Command;
+                    } else if b == b'"' {
+                        state = TokenState::QuotedString;
+                    }
 
-            // REM is essentially a string
-            if b == 0x90 {
-                is_string = true;
-            }
+                    j += 1;
+                    continue;
+                }
 
-            j += 1;
-            continue;
+                if let Some(funcname) = FUNCS.get(&b) {
+                    if !temp_bytes.is_empty() {
+                        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
+                        temp_bytes.clear();
+                    }
+                    output.push_str(funcname);
+
+                    j += 1;
+                    continue;
+                }
+
+                // fallback to commands
+                if let Some(cmdname) = COMMANDS.get(&b) {
+                    if !temp_bytes.is_empty() {
+                        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
+                        temp_bytes.clear();
+                    }
+                    output.push_str(cmdname);
+
+                    j += 1;
+                    continue;
+                }
+            },
+
+            TokenState::QuotedString => {
+                // Any 8-bit character
+                temp_bytes.push(b);
+
+                // End the quoted string
+                if b == b'"' {
+                    state = TokenState::ASCIIAndFuncs;
+                }
+
+                j += 1;
+                continue;
+            },
         }
 
         // ?
@@ -229,73 +279,106 @@ pub fn tokenise_line(line: &str, cset: CharacterSet) -> Option<SC3000String> {
     bytes.push(0x00);
     bytes.push(0x00);
 
-    let mut use_funcs = false;
-    let mut is_string = false;
     let mut temp_line = String::new();
 
-    let mut i = space_i + 1;
-    while i < line.len() {
-        let c = line[i..].chars().next()?;
+    let mut state = TokenState::Command;
+    let mut j = space_i + 1;
+    while j < line.len() {
+        let c = line[j..].chars().next()?;
 
-        // Only process non-ASCII characters if we're in a quoted string
-        if is_string {
-            temp_line.push(c);
-
-            if c == '"' {
-                is_string = false;
-            }
-
-            i += 1;
-            while !line.is_char_boundary(i) {
-                i += 1;
-            }
-            continue;
-        }
-
-        if use_funcs {
-            if let Some(func_num) = FUNCLIST.iter().position(|f| line[i..].starts_with((*f).1)) {
-                if !temp_line.is_empty() {
-                    bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
-                    temp_line.clear();
+        match state {
+            TokenState::Command => {
+                if c.is_ascii() {
+                    temp_line.push(c);
+                    if c == '"' {
+                        state = TokenState::QuotedString;
+                    }
+                    j += 1;
+                    continue;
                 }
-                bytes.push(FUNCLIST[func_num].0);
+                if let Some(command_num) = COMMANDLIST.iter().position(|t| line[j..].starts_with((*t).1)) {
+                    if !temp_line.is_empty() {
+                        bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+                        temp_line.clear();
+                    }
+                    bytes.push(COMMANDLIST[command_num].0);
 
-                i += FUNCLIST[func_num].1.len();
+                    // REM
+                    if COMMANDLIST[command_num].0 == 0x90 {
+                        state = TokenState::Remark;
+                    } else {
+                        state = TokenState::ASCIIAndFuncs;
+                    }
+
+                    j += COMMANDLIST[command_num].1.len();
+                    continue;
+                }
+            },
+
+            TokenState::Remark => {
+                temp_line.push(c);
+
+                j += 1;
+                while !line.is_char_boundary(j) {
+                    j += 1;
+                }
                 continue;
-            }
-        }
-        use_funcs = true;
+            },
 
-        if let Some(command_num) = COMMANDLIST.iter().position(|t| line[i..].starts_with((*t).1)) {
-            if !temp_line.is_empty() {
-                //eprintln!("Adding line \"{}\" to bytes", temp_line);
-                bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
-                temp_line.clear();
-            }
-            bytes.push(COMMANDLIST[command_num].0);
+            TokenState::ASCIIAndFuncs => {
+                if c.is_ascii() {
+                    temp_line.push(c);
+                    if c == ':' {
+                        state = TokenState::Command;
+                    } else if c == '"' {
+                        state = TokenState::QuotedString;
+                    }
+                    j += 1;
+                    continue;
+                }
 
-            // REM is essentially a string
-            if COMMANDLIST[command_num].0 == 0x90 {
-                is_string = true;
-            }
+                if let Some(func_num) = FUNCLIST.iter().position(|f| line[j..].starts_with((*f).1)) {
+                    if !temp_line.is_empty() {
+                        bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+                        temp_line.clear();
+                    }
+                    bytes.push(FUNCLIST[func_num].0);
 
-            i += COMMANDLIST[command_num].1.len();
-            continue;
-        }
+                    j += FUNCLIST[func_num].1.len();
+                    continue;
+                }
 
-        if let Some(b) = &c.as_ascii() {
-            temp_line.push(c);
-            if c == ':' {
-                use_funcs = false;
-            } else if c == '"' {
-                is_string = !is_string;
-            }
-            i += 1;
-            continue;
+                // Fallback to command codes
+                if let Some(command_num) = COMMANDLIST.iter().position(|t| line[j..].starts_with((*t).1)) {
+                    if !temp_line.is_empty() {
+                        bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+                        temp_line.clear();
+                    }
+                    bytes.push(COMMANDLIST[command_num].0);
+
+                    j += COMMANDLIST[command_num].1.len();
+                    continue;
+                }
+            },
+
+            TokenState::QuotedString => {
+                temp_line.push(c);
+
+                if c == '"' {
+                    state = TokenState::ASCIIAndFuncs;
+                }
+
+                j += 1;
+                while !line.is_char_boundary(j) {
+                    j += 1;
+                }
+                continue;
+            },
+
         }
 
         // Just continue on
-        i += 1;
+        j += 1;
     }
 
     if !temp_line.is_empty() {
