@@ -21,17 +21,21 @@
 //! ## Line format
 //!
 //! Each line follows this format:
-//! - Content length as one byte
-//! - Line number as two bytes (little endian order)
+//! - Content length (one byte)
+//! - Line number (two bytes, little endian order)
 //! - Two unknown bytes that are always zero
 //! - Content
 //! - 0x0d as newline character
 //!
-//! Content starts with a 'command' and then any number of text or 'function' bytes.
-//! After a colon (':') another command is given and the format restarts.
-//! Command and function codes have their high bit set, so they can be easily distinguished
+//! ### Content format
+//! - Content starts with a a 'command' byte code after optional ASCII characters e.g a space
+//! - The following bytes are any number of ASCII text or 'function' byte codes.
+//! The function codes seem to overlay the command ones, so we fallback to trying them if no function is found.
+//! - Command and function codes have their high bit set, so they can be easily distinguished
 //! from regular ASCII text.
-//! Quoted text strings and REMarks can use the whole [character set](sc3000_charset).
+//! - After a colon (':') another command is given and the format restarts.
+//! - REMarks consume the rest of the line with 8-bit text.
+//! - Quoted text strings and REMarks can use the whole 8-bit [character set](sc3000_charset).
 //!
 //! ## Commands
 //!
