@@ -116,42 +116,59 @@ lazy_static! {
     static ref FUNCS: HashMap<u8, &'static str> = HashMap::from(FUNCLIST);
 }
 
-fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
+fn detokenise_line(output: &mut String, line: &[u8], cset: CharacterSet) {
     let mut use_funcs = false;
     let mut is_string = false;
     let mut temp_bytes = vec![];
 
-    for b in input {
+    // We don't use the content length in the first byte
+
+    // Next two bytes are the line number
+    let lineno = (line[1] as u16) | ((line[2] as u16) << 8);
+
+    // Next two bytes?
+
+    // Print the line number
+    output.push_str(&lineno.to_string());
+    output.push(' ');
+
+    let mut j = 5;
+    while j < line.len() {
+        let b = line[j];
         // Ordinary ASCII characters
-        if *b < 127 {
-            temp_bytes.push(*b);
-            if *b == b':' {
+        if b < 127 {
+            temp_bytes.push(b);
+            if b == b':' {
                 use_funcs = false;
-            } else if *b == b'"' {
+                is_string = false;
+            } else if b == b'"' {
                 is_string = !is_string;
             }
+            j += 1;
             continue;
         }
 
         // Only process high-value bytes as characters if we're in a quoted string
         if is_string {
-            temp_bytes.push(*b);
+            temp_bytes.push(b);
+            j += 1;
             continue;
         }
 
         if use_funcs {
-            if let Some(funcname) = FUNCS.get(b) {
+            if let Some(funcname) = FUNCS.get(&b) {
                 if !temp_bytes.is_empty() {
                     output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                     temp_bytes.clear();
                 }
                 output.push_str(funcname);
+                j += 1;
                 continue;
             }
         }
         use_funcs = true;
 
-        if let Some(cmdname) = COMMANDS.get(b) {
+        if let Some(cmdname) = COMMANDS.get(&b) {
             if !temp_bytes.is_empty() {
                 output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                 temp_bytes.clear();
@@ -159,14 +176,16 @@ fn detokenise_line(output: &mut String, input: &[u8], cset: CharacterSet) {
             output.push_str(cmdname);
 
             // REM is essentially a string
-            if *b == 0x90 {
+            if b == 0x90 {
                 is_string = true;
             }
 
+            j += 1;
             continue;
         }
 
         // ?
+        j += 1;
     }
 
     if !temp_bytes.is_empty() {
@@ -180,27 +199,15 @@ pub fn detokenise(sc3kstr: &SC3000String) -> String {
 
     let mut i = 0;
     while i < sc3kstr.len() {
-        // First byte is the line length (after the line number)
-        let line_length = sc3kstr.bytes[i] as usize;
-        if line_length == 0 {
+        // First byte is the content length
+        let content_length = sc3kstr.bytes[i] as usize;
+        if content_length == 0 {
             break;
         }
-        i += 1;
-
-        // Next two bytes are the line number
-        let lineno = (sc3kstr.bytes[i] as u16) | ((sc3kstr.bytes[i + 1] as u16) << 8);
-        i += 2;
-
-        // Next two bytes?
-        i += 2;
-
-        // Print the line number
-        output.push_str(&lineno.to_string());
-        output.push(' ');
 
         // Detokenise the contents
-        detokenise_line(&mut output, &sc3kstr.bytes[i..i + line_length], sc3kstr.cset);
-        i += line_length;
+        detokenise_line(&mut output, &sc3kstr.bytes[i..i + 5 + content_length], sc3kstr.cset);
+        i += 5 + content_length;
 
         output.push('\x0a');
         i += 1;
