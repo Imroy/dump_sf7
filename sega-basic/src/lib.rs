@@ -66,7 +66,7 @@ use std::collections::HashMap;
 use sc3000_charset::{CharacterSet, SC3000String};
 
 
-static COMMANDLIST: [(u8, &'static str); 89] = [
+static COMMANDLIST: [(u8, &'static str); 99] = [
     ( 0x81, "INPUT$" ), ( 0x82, "LIST" ), ( 0x83, "LLIST" ),
     ( 0x84, "AUTO" ), ( 0x85, "DELETE" ), ( 0x86, "RUN" ), ( 0x87, "CONT" ),
     ( 0x88, "LOAD" ), ( 0x89, "SAVE" ), ( 0x8a, "VERIFY" ), ( 0x8b, "NEW" ),
@@ -92,7 +92,10 @@ static COMMANDLIST: [(u8, &'static str); 89] = [
     ( 0xc8, "<=" ), ( 0xc9, ">" ), ( 0xca, "<" ), ( 0xcb, "=" ),
     ( 0xcc, "NOT" ), ( 0xcd, "AND" ), ( 0xce, "OR" ), ( 0xcf, "XOR" ),
 
-    ( 0xd0, "CLOADM" ), ( 0xd1, "CSAVEM" ), ( 0xd2, "VERIFYM" ),
+    ( 0xd0, "CLOADM" ), ( 0xd1, "CSAVEM" ), ( 0xd2, "VERIFYM" ), ( 0xd3, "SAVEM" ),
+    ( 0xd4, "LOADM" ), ( 0xd5, "LIMIT" ), ( 0xd6, "GET" ), ( 0xd7, "PUT" ),
+    ( 0xd8, "DSKI$" ), ( 0xd9, "DSKO$" ), ( 0xda, "KILL" ), ( 0xdb, "SET" ),
+    ( 0xdc, "NAME" ),
 
     ( 0xe0, "FN" ), ( 0xe1, "TO" ), ( 0xe2, "STEP" ), ( 0xe3, "THEN" ),
     ( 0xe4, "TAB" ), ( 0xe5, "SPC" ), ( 0xe7, "OUTPUT" ),
