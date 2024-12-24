@@ -217,7 +217,8 @@ fn flush_bytes(output: &mut String, temp_bytes: &mut Vec::<u8>, cset: CharacterS
     temp_bytes.clear();
 }
 
-fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cset: CharacterSet) {
+/// Detokenise a byte slice of data holding a line of BASIC source code into a Unicode string
+pub fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cset: CharacterSet) {
     let mut temp_bytes = vec![];
 
     // We don't use the content length in the first byte
