@@ -341,7 +341,7 @@ pub fn detokenise(sc3kstr: &SC3000String, bver: SegaBasicVersion) -> String {
 
 /// Tokenise a line of Unicode text into bytes for use in an SC-3000 BASIC file
 pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> Option<SC3000String> {
-    let mut bytes = Vec::<u8>::new();
+    let mut bytes = Vec::<u8>::with_capacity(line.len() / 10);
     bytes.push(0x00);	// placeholder - replace with line length later
 
     let space_i = line.find(' ')?;
@@ -446,6 +446,7 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
 
     // Newline
     bytes.push(0x0d);
+    bytes.shrink_to_fit();
 
     Some(SC3000String {
         cset,
