@@ -28,16 +28,16 @@
 //! - 0x0d as newline character
 //!
 //! ### Content format
-//! - Content starts with a a 'command' byte code after optional ASCII characters e.g a space
+//! - Content starts with a a 'statement' byte code after optional ASCII characters e.g a space
 //! - The following bytes are any number of ASCII text or 'function' byte codes.
 //! The function codes seem to overlay the command ones, so we fallback to trying them if no function is found.
-//! - Command and function codes have their high bit set, so they can be easily distinguished
+//! - Statement and function codes have their high bit set, so they can be easily distinguished
 //! from regular ASCII text.
-//! - After a colon (':') another command is given and the format restarts.
+//! - After a colon (':') another statement is given and the format restarts.
 //! - REMarks consume the rest of the line with 8-bit text.
 //! - Quoted text strings and REMarks can use the whole 8-bit [character set](sc3000_charset).
 //!
-//! ## Commands
+//! ## Statements
 //!
 //! Disk BASIC:
 //! - Added INPUT (0x81)
@@ -89,7 +89,7 @@ pub enum SegaBasicVersion {
 
 
 lazy_static! {
-    static ref COMMANDS: [ HashMap<u8, &'static str>; 2 ] = [
+    static ref STATEMENTS: [ HashMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
         HashMap::from([
             ( 0x82, "LIST" ),  ( 0x83, "LLIST" ),
@@ -199,7 +199,7 @@ lazy_static! {
 
 #[derive(Copy, Clone, Debug)]
 enum TokenState {
-    Command,
+    Statement,
     Remark,
     ASCIIAndFuncs,
     QuotedString,
@@ -219,12 +219,12 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
     output.push_str(&lineno.to_string());
     output.push(' ');
 
-    let mut state = TokenState::Command;
+    let mut state = TokenState::Statement;
     let mut j = 5;
     while j < line.len() {
         let b = line[j];
         match state {
-            TokenState::Command => {
+            TokenState::Statement => {
                 // Ordinary ASCII character
                 if b < 128 {
                     temp_bytes.push(b);
@@ -236,12 +236,12 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                     continue;
                 }
 
-                if let Some(cmdname) = COMMANDS[bver as usize].get(&b) {
+                if let Some(stmtname) = STATEMENTS[bver as usize].get(&b) {
                     if !temp_bytes.is_empty() {
                         output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                         temp_bytes.clear();
                     }
-                    output.push_str(cmdname);
+                    output.push_str(stmtname);
 
                     // REM
                     if b == 0x90 {
@@ -268,7 +268,7 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                 if b < 128 {
                     temp_bytes.push(b);
                     if b == b':' {
-                        state = TokenState::Command;
+                        state = TokenState::Statement;
                     } else if b == b'"' {
                         state = TokenState::QuotedString;
                     }
@@ -288,13 +288,13 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                     continue;
                 }
 
-                // fallback to commands
-                if let Some(cmdname) = COMMANDS[bver as usize].get(&b) {
+                // fallback to statements
+                if let Some(stmtname) = STATEMENTS[bver as usize].get(&b) {
                     if !temp_bytes.is_empty() {
                         output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
                         temp_bytes.clear();
                     }
-                    output.push_str(cmdname);
+                    output.push_str(stmtname);
 
                     j += 1;
                     continue;
@@ -364,13 +364,13 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
 
     let mut temp_line = String::new();
 
-    let mut state = TokenState::Command;
+    let mut state = TokenState::Statement;
     let mut j = space_i + 1;
     while j < line.len() {
         let c = line[j..].chars().next()?;
 
         match state {
-            TokenState::Command => {
+            TokenState::Statement => {
                 if c.is_ascii() {
                     temp_line.push(c);
                     if c == '"' {
@@ -380,21 +380,21 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
                     continue;
                 }
 
-                if let Some((&cmd_code, &command)) = (&COMMANDS[bver as usize]).iter()
+                if let Some((&stmt_code, &statement)) = (&STATEMENTS[bver as usize]).iter()
                     .filter(|&(_, v)| line[j..].starts_with(v))
                     .max_by_key(|&(_, v)| v.len()) {
                         if !temp_line.is_empty() {
                             bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
                             temp_line.clear();
                         }
-                        bytes.push(cmd_code);
+                        bytes.push(stmt_code);
 
                         // REM
-                        if cmd_code == 0x90 {
+                        if stmt_code == 0x90 {
                             state = TokenState::Remark;
                         }
 
-                        j += command.len();
+                        j += statement.len();
                         continue;
                     }
 
@@ -435,18 +435,18 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
                         continue;
                     }
 
-                // Fallback to command codes
-                if let Some((&cmd_code, &command)) = (&COMMANDS[bver as usize]).iter()
+                // Fallback to statement codes
+                if let Some((&stmt_code, &statement)) = (&STATEMENTS[bver as usize]).iter()
                     .filter(|&(_, v)| line[j..].starts_with(v))
                     .max_by_key(|&(_, v)| v.len()) {
                         if !temp_line.is_empty() {
                             bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
                             temp_line.clear();
                         }
-                        bytes.push(cmd_code);
+                        bytes.push(stmt_code);
 
-                    j += command.len();
-                    continue;
+                        j += statement.len();
+                        continue;
                 }
             },
 
