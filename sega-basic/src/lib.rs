@@ -203,6 +203,15 @@ enum TokenState {
     QuotedString,
 }
 
+fn flush_bytes(output: &mut String, temp_bytes: &mut Vec::<u8>, cset: CharacterSet) {
+    if temp_bytes.is_empty() {
+        return;
+    }
+
+    output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
+    temp_bytes.clear();
+}
+
 fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cset: CharacterSet) {
     let mut temp_bytes = vec![];
 
@@ -241,10 +250,7 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                 }
 
                 if let Some(stmtname) = STATEMENTS[bver as usize].get(&b) {
-                    if !temp_bytes.is_empty() {
-                        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
-                        temp_bytes.clear();
-                    }
+                    flush_bytes(output, &mut temp_bytes, cset);
                     output.push_str(stmtname);
 
                     // REM
@@ -272,10 +278,7 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                 }
 
                 if let Some(funcname) = FUNCS[bver as usize].get(&b) {
-                    if !temp_bytes.is_empty() {
-                        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
-                        temp_bytes.clear();
-                    }
+                    flush_bytes(output, &mut temp_bytes, cset);
                     output.push_str(funcname);
 
                     state = TokenState::Statement;
@@ -310,9 +313,7 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
         j += 1;
     }
 
-    if !temp_bytes.is_empty() {
-        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
-    }
+    flush_bytes(output, &mut temp_bytes, cset);
 }
 
 /// Detokenise a byte slice of data holding BASIC source code into a Unicode string
@@ -337,6 +338,16 @@ pub fn detokenise(sc3kstr: &SC3000String, bver: SegaBasicVersion) -> String {
 
     output.shrink_to_fit();
     output
+}
+
+fn flush_line(bytes: &mut Vec::<u8>, temp_line: &mut String, cset: CharacterSet) {
+    if temp_line.is_empty() {
+        return;
+    }
+
+    //eprintln!("Adding line \"{}\" to bytes", temp_line);
+    bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+    temp_line.clear();
 }
 
 /// Tokenise a line of Unicode text into bytes for use in an SC-3000 BASIC file
@@ -365,10 +376,7 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
                 if let Some((&stmt_code, &statement)) = (&STATEMENTS[bver as usize]).iter()
                     .filter(|&(_, v)| line[j..].starts_with(v))
                     .max_by_key(|&(_, v)| v.len()) {
-                        if !temp_line.is_empty() {
-                            bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
-                            temp_line.clear();
-                        }
+                        flush_line(&mut bytes, &mut temp_line, cset);
                         bytes.push(stmt_code);
 
                         // REM
@@ -383,10 +391,7 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
                 if let Some((&func_code, &func_name)) = (&FUNCS[bver as usize]).iter()
                     .filter(|&(_, v)| line[j..].starts_with(v))
                     .max_by_key(|&(_, v)| v.len()) {
-                        if !temp_line.is_empty() {
-                            bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
-                            temp_line.clear();
-                        }
+                        flush_line(&mut bytes, &mut temp_line, cset);
                         bytes.push(0x80);
                         bytes.push(func_code);
 
@@ -437,9 +442,7 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
         j += 1;
     }
 
-    if !temp_line.is_empty() {
-        bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
-    }
+    flush_line(&mut bytes, &mut temp_line, cset);
 
     // replace the line length at the start of the line
     bytes[0] = (bytes.len() - 5) as u8;
