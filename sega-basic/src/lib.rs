@@ -160,6 +160,11 @@ lazy_static! {
         ]),
     ];
 
+    static ref ALIASES: [ ( &'static str, u8); 5 ] = [
+        ( "?", 0x91 ), ( "L?", 0x92 ),
+        ( "><", 0xc6 ), ( "=>", 0xc7 ), ( "=<", 0xc8 ),
+    ];
+
     static ref FUNCS: [ HashMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
         HashMap::from([
@@ -373,6 +378,14 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
 
         match state {
             TokenState::Statement => {
+                if let Some(num) = ALIASES.iter().position(|alias| line[j..].starts_with((*alias).0)) {
+                    flush_line(&mut bytes, &mut temp_line, cset);
+                    bytes.push(ALIASES[num].1);
+
+                    j += ALIASES[num].0.len();
+                    continue;
+                }
+
                 if let Some((&stmt_code, &statement)) = (&STATEMENTS[bver as usize]).iter()
                     .filter(|&(_, v)| line[j..].starts_with(v))
                     .max_by_key(|&(_, v)| v.len()) {
