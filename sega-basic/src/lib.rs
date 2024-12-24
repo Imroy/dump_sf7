@@ -28,14 +28,12 @@
 //! - 0x0d as newline character
 //!
 //! ### Content format
-//! - Content starts with a a 'statement' byte code after optional ASCII characters e.g a space
-//! - The following bytes are any number of ASCII text or 'function' byte codes.
-//! The function codes seem to overlay the command ones, so we fallback to trying them if no function is found.
+//! - Content is mostly 'statement' byte codes with ASCII characters
 //! - Statement and function codes have their high bit set, so they can be easily distinguished
 //! from regular ASCII text.
+//! - A 'function' byte code appears after a 0x80 byte
 //! - After a colon (':') another statement is given and the format restarts.
-//! - REMarks consume the rest of the line with 8-bit text.
-//! - Quoted text strings and REMarks can use the whole 8-bit [character set](sc3000_charset).
+//! - Quoted text strings and anything after a REMark or DATA statement can use the whole 8-bit [character set](sc3000_charset).
 //!
 //! ## Statements
 //!
@@ -200,8 +198,8 @@ lazy_static! {
 #[derive(Copy, Clone, Debug)]
 enum TokenState {
     Statement,
-    Remark,
-    ASCIIAndFuncs,
+    Function,
+    RemarkOrData,
     QuotedString,
 }
 
@@ -236,6 +234,12 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                     continue;
                 }
 
+                if b == 0x80 {
+                    state = TokenState::Function;
+                    j += 1;
+                    continue;
+                }
+
                 if let Some(stmtname) = STATEMENTS[bver as usize].get(&b) {
                     if !temp_bytes.is_empty() {
                         output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
@@ -244,26 +248,16 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                     output.push_str(stmtname);
 
                     // REM
-                    if b == 0x90 {
-                        state = TokenState::Remark;
-                    } else {
-                        state = TokenState::ASCIIAndFuncs;
-                    };
+                    if b == 0x90 || b == 0x93 {
+                        state = TokenState::RemarkOrData;
+                    }
 
                     j += 1;
                     continue;
                 }
             },
 
-            TokenState::Remark => {
-                // Any 8-bit character
-                temp_bytes.push(b);
-
-                j += 1;
-                continue;
-            },
-
-            TokenState::ASCIIAndFuncs => {
+            TokenState::Function => {
                 // Ordinary ASCII character
                 if b < 128 {
                     temp_bytes.push(b);
@@ -284,21 +278,18 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
                     }
                     output.push_str(funcname);
 
+                    state = TokenState::Statement;
                     j += 1;
                     continue;
                 }
+            },
 
-                // fallback to statements
-                if let Some(stmtname) = STATEMENTS[bver as usize].get(&b) {
-                    if !temp_bytes.is_empty() {
-                        output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
-                        temp_bytes.clear();
-                    }
-                    output.push_str(stmtname);
+            TokenState::RemarkOrData => {
+                // Any 8-bit character
+                temp_bytes.push(b);
 
-                    j += 1;
-                    continue;
-                }
+                j += 1;
+                continue;
             },
 
             TokenState::QuotedString => {
@@ -307,7 +298,7 @@ fn detokenise_line(output: &mut String, line: &[u8], bver: SegaBasicVersion, cse
 
                 // End the quoted string
                 if b == b'"' {
-                    state = TokenState::ASCIIAndFuncs;
+                    state = TokenState::Statement;
                 }
 
                 j += 1;
@@ -371,15 +362,6 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
 
         match state {
             TokenState::Statement => {
-                if c.is_ascii() {
-                    temp_line.push(c);
-                    if c == '"' {
-                        state = TokenState::QuotedString;
-                    }
-                    j += 1;
-                    continue;
-                }
-
                 if let Some((&stmt_code, &statement)) = (&STATEMENTS[bver as usize]).iter()
                     .filter(|&(_, v)| line[j..].starts_with(v))
                     .max_by_key(|&(_, v)| v.len()) {
@@ -390,17 +372,42 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
                         bytes.push(stmt_code);
 
                         // REM
-                        if stmt_code == 0x90 {
-                            state = TokenState::Remark;
+                        if stmt_code == 0x90 || stmt_code == 0x93 {
+                            state = TokenState::RemarkOrData;
                         }
 
                         j += statement.len();
                         continue;
                     }
 
+                if let Some((&func_code, &func_name)) = (&FUNCS[bver as usize]).iter()
+                    .filter(|&(_, v)| line[j..].starts_with(v))
+                    .max_by_key(|&(_, v)| v.len()) {
+                        if !temp_line.is_empty() {
+                            bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+                            temp_line.clear();
+                        }
+                        bytes.push(0x80);
+                        bytes.push(func_code);
+
+                        j += func_name.len();
+                        continue;
+                    }
+
+                if c.is_ascii() {
+                    temp_line.push(c);
+                    if c == '"' {
+                        state = TokenState::QuotedString;
+                    }
+                    j += 1;
+                    continue;
+                }
             },
 
-            TokenState::Remark => {
+            // we never use this state when tokenising
+            TokenState::Function => (),
+
+            TokenState::RemarkOrData => {
                 temp_line.push(c);
 
                 j += 1;
@@ -410,51 +417,11 @@ pub fn tokenise_line(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> 
                 continue;
             },
 
-            TokenState::ASCIIAndFuncs => {
-                if c.is_ascii() {
-                    temp_line.push(c);
-                    if c == ':' {
-                        state = TokenState::Command;
-                    } else if c == '"' {
-                        state = TokenState::QuotedString;
-                    }
-                    j += 1;
-                    continue;
-                }
-
-                if let Some((&func_code, &func_name)) = (&FUNCS[bver as usize]).iter()
-                    .filter(|&(_, v)| line[j..].starts_with(v))
-                    .max_by_key(|&(_, v)| v.len()) {
-                        if !temp_line.is_empty() {
-                            bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
-                            temp_line.clear();
-                        }
-                        bytes.push(func_code);
-
-                        j += func_name.len();
-                        continue;
-                    }
-
-                // Fallback to statement codes
-                if let Some((&stmt_code, &statement)) = (&STATEMENTS[bver as usize]).iter()
-                    .filter(|&(_, v)| line[j..].starts_with(v))
-                    .max_by_key(|&(_, v)| v.len()) {
-                        if !temp_line.is_empty() {
-                            bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
-                            temp_line.clear();
-                        }
-                        bytes.push(stmt_code);
-
-                        j += statement.len();
-                        continue;
-                }
-            },
-
             TokenState::QuotedString => {
                 temp_line.push(c);
 
                 if c == '"' {
-                    state = TokenState::ASCIIAndFuncs;
+                    state = TokenState::Statement;
                 }
 
                 j += 1;
