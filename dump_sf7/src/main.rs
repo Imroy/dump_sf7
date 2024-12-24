@@ -165,7 +165,7 @@ fn main() -> std::io::Result<()> {
             } else if file.file_type == FileType::NonAscii
                 && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
                     print!("\t[BASIC]");
-                    outfile.write_all(detokenise(&sc3kstr).as_bytes())?;
+                    outfile.write_all(detokenise(&sc3kstr, SegaBasicVersion::DiskBasic).as_bytes())?;
                 } else {
                     print!("\t[Raw]");
                     outfile.write_all(&contents)?;
