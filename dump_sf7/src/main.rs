@@ -124,7 +124,7 @@ fn main() -> std::io::Result<()> {
         disk.load_data(&disk_buf);
     }
 
-    if disk.is_sys() {
+    if !only_list && disk.is_sys() {
         println!("System disk: {}", disk.name(cset));
         let mut file = File::create("IPL.bin")?;
         file.write_all(disk.ipl())?;
