@@ -30,10 +30,9 @@
 //! ### Content format
 //! - Content is mostly 'statement' byte codes with ASCII characters
 //! - Statement and function codes have their high bit set, so they can be easily distinguished
-//! from regular ASCII text.
+//! from regular ASCII text
 //! - A 'function' byte code appears after a 0x80 byte
-//! - After a colon (':') another statement is given and the format restarts.
-//! - Quoted text strings and anything after a REMark or DATA statement can use the whole 8-bit [character set](sc3000_charset).
+//! - Quoted text strings and anything after a REM or DATA statement can use the whole 8-bit [character set](sc3000_charset)
 //!
 //! ## Statements
 //!
