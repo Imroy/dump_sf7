@@ -293,6 +293,9 @@ impl SC3000String {
             if let Some(b) = cset.get_reverse(&src_char) {
                 bytes.push(*b);
                 i += 1;
+                while !source.is_char_boundary(i) && i < source.len() {
+                    i += 1;
+                }
                 continue;
             }
             if let Some(b) = &src_char.as_ascii() {
