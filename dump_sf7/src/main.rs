@@ -124,14 +124,27 @@ fn main() -> std::io::Result<()> {
         disk.load_data(&disk_buf);
     }
 
-    if !only_list && disk.is_sys() {
-        println!("System disk: {}", disk.name(cset));
-        let mut file = File::create("IPL.bin")?;
-        file.write_all(disk.ipl())?;
-        println!("Wrote initial program loader to IPL.bin");
-    }
-
     let wildcards = &matches.free[1..];
+
+    if !only_list && disk.is_sys() {
+        let mut matches = true;
+        if !wildcards.is_empty() {
+            matches = false;
+            for wc in wildcards {
+                if strmatch("IPL.bin", wc.as_str()) {
+                    matches = true;
+                    break;
+                }
+            }
+        }
+
+        if matches {
+            println!("System disk: {}", disk.name(cset));
+            let mut file = File::create("IPL.bin")?;
+            file.write_all(disk.ipl())?;
+            println!("Wrote initial program loader to IPL.bin");
+        }
+    }
 
     let files = disk.list_directory(cset);
     for file in files {
