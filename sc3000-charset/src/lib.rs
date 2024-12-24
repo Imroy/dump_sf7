@@ -73,7 +73,7 @@ static JAPANESE_CHARLIST: [(u8, char); 122] = [
 ];
 
 // List of 'Export' characters and their substitutions
-static EXPORT_CHARLIST: [(u8, char); 96] = [
+static EXPORT_CHARLIST: [(u8, char); 95] = [
     ( 0x0d, '\x0a' ),
 
     ( 0x5c, '\u{00A5}' ), ( 0x5f, '\u{03C0}' ),
@@ -95,7 +95,7 @@ static EXPORT_CHARLIST: [(u8, char); 96] = [
 
     ( 0xb0, '\u{01cf}' ), ( 0xb1, '\u{00cc}' ), ( 0xb2, '\u{00cd}' ), ( 0xb3, '\u{00cf}' ),
     ( 0xb4, '\u{00ce}' ), ( 0xb5, '\u{012a}' ), ( 0xb6, '\u{00d4}' ), ( 0xb7, '\u{01d1}' ),
-    ( 0xb8, '\u{004f}' ), ( 0xb9, '\u{00d3}' ), ( 0xba, '\u{00d2}' ), ( 0xbb, '\u{00d6}' ),
+    ( 0xb9, '\u{00d3}' ), ( 0xba, '\u{00d2}' ), ( 0xbb, '\u{00d6}' ),
     ( 0xbc, '\u{00d5}' ), ( 0xbd, '\u{00d8}' ), ( 0xbe, '\u{01d3}' ), ( 0xbf, '\u{00da}' ),
 
     ( 0xc0, '\u{00d9}' ), ( 0xc1, '\u{00dc}' ), ( 0xc2, '\u{016a}' ), ( 0xc3, '\u{03b1}' ),
@@ -276,6 +276,12 @@ impl SC3000String {
                     i += 3;
                     continue;
                 }
+                // Handle 0xb8 using a combining character
+                if source[i..].starts_with("\u{0327}O") {
+                    bytes.push(0xb8);
+                    i += 3;
+                    continue;
+                }
                 // Handle Æ
                 if src_char == '\u{00c6}' {
                     bytes.push(0xce);	// "Combining half-A for Æ"
@@ -318,9 +324,14 @@ impl core::fmt::Display for SC3000String {
         let mut src_iter = self.bytes.iter().peekable();
         while let Some(&src_byte) = src_iter.next() {
             if self.cset == CharacterSet::Export {
-                // Character 0xaf can be handled with a combining character
+                // Character 0xaf is handled with a combining character
                 if src_byte == 0xaf {
                     write!(f, "\u{0302}N")?;
+                    continue;
+                }
+                // Character 0xaf is handled with a combining character
+                if src_byte == 0xb8 {
+                    write!(f, "\u{0327}O")?;
                     continue;
                 }
                 // Handle 0xce "Combining half-A for Æ" followed by 'E'
