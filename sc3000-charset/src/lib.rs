@@ -443,7 +443,7 @@ impl From<SC3000String> for String {
 
 
 /// Try to guess the best character set of a unicode string
-fn guess_character_set(source: &str) -> Result<CharacterSet> {
+pub fn guess_character_set(source: &str) -> Result<CharacterSet> {
     let mut j_count = 0;
     let mut e_count = 0;
     for src_char in source.chars() {
