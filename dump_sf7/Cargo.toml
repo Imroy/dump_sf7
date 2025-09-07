@@ -1,0 +1,12 @@
+[package]
+name = "dump_sf7"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+getopts = "0.2"
+sc3000-charset = { path = "../sc3000-charset" }
+sf7000-fs = { path = "../sf7000-fs" }
