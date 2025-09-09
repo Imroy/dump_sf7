@@ -209,7 +209,7 @@ fn flush_bytes(output: &mut String, temp_bytes: &mut Vec<u8>, cset: CharacterSet
         return;
     }
 
-    output.push_str(&SC3000String::from_cset(temp_bytes.as_slice(), cset).to_string());
+    output.push_str(&SC3000String::new(temp_bytes.as_slice(), cset).to_string());
     temp_bytes.clear();
 }
 
@@ -497,5 +497,5 @@ pub fn tokenise(source: &str, bver: SegaBasicVersion, cset: CharacterSet) -> Opt
     }
 
     output.shrink_to_fit();
-    Some(SC3000String::from_cset(output.as_ref(), cset))
+    Some(SC3000String::new(output.as_ref(), cset))
 }

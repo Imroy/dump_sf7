@@ -194,7 +194,7 @@ fn main() -> std::io::Result<()> {
         let contents = file.read();
         let mut outfile = File::create(&file.name)?;
         if !raw {
-            let sc3kstr = SC3000String::from_cset(&contents, cset);
+            let sc3kstr = SC3000String::new(&contents, cset);
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
                 outfile.write_all(sc3kstr.to_string().as_bytes())?;

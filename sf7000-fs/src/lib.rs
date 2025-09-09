@@ -139,7 +139,7 @@ impl Disk {
 
     /// Disk name
     pub fn name(&self, cset: CharacterSet) -> String {
-        SC3000String::from_cset(&self.data[DISK_NAME_START..DISK_NAME_END], cset).to_string()
+        SC3000String::new(&self.data[DISK_NAME_START..DISK_NAME_END], cset).to_string()
     }
 
     /// Initial Program Loader
@@ -158,7 +158,7 @@ impl Disk {
                 continue;
             }
 
-            let mut utf8_filename = SC3000String::from_cset(name, cset).to_string();
+            let mut utf8_filename = SC3000String::new(name, cset).to_string();
             let (mut name_part, mut ext_part) = utf8_filename.split_at(8);
             while name_part.ends_with(' ') {
                 name_part = name_part.strip_suffix(' ').unwrap();
