@@ -233,6 +233,28 @@ pub enum CharacterSet {
 }
 
 impl CharacterSet {
+    /// Try to guess the best character set of a unicode string
+    pub fn guess(source: &str) -> Result<Self> {
+        let mut j_count = 0;
+        let mut e_count = 0;
+        for src_char in source.chars() {
+            if JAPANESE_REVERSE_CHARMAP.contains_key(&src_char) {
+                j_count += 1;
+            }
+            if EXPORT_REVERSE_CHARMAP.contains_key(&src_char) {
+                e_count += 1;
+            }
+        }
+
+        if (j_count == 0) && (e_count == 0) {
+            Err(ConversionError::NonRepresentableCharacterFound)
+        } else if j_count > e_count {
+            Ok(Self::Japanese)
+        } else {
+            Ok(Self::Export)
+        }
+    }
+
     fn unused_contains(&self, chr: &u8) -> bool {
         match self {
             CharacterSet::Japanese => JAPANESE_UNUSED.contains(chr),
@@ -427,7 +449,7 @@ impl TryFrom<&str> for SC3000String {
 
     /// Try to make an SC3000String from a Unicode str, guessing the character set
     fn try_from(t: &str) -> Result<Self> {
-        let cs = guess_character_set(t)?;
+        let cs = CharacterSet::guess(t)?;
         Ok(Self::from_string(t, cs))
     }
 }
@@ -437,7 +459,7 @@ impl TryFrom<&String> for SC3000String {
 
     /// Try to make an SC3000String from a Unicode String, guessing the character set
     fn try_from(t: &String) -> Result<Self> {
-        let cs = guess_character_set(t)?;
+        let cs = CharacterSet::guess(t)?;
         Ok(Self::from_string(t, cs))
     }
 }
@@ -459,27 +481,5 @@ impl<const N: usize> TryInto<[u8; N]> for SC3000String {
 impl From<SC3000String> for String {
     fn from(sc3kstr: SC3000String) -> Self {
         sc3kstr.to_string()
-    }
-}
-
-/// Try to guess the best character set of a unicode string
-pub fn guess_character_set(source: &str) -> Result<CharacterSet> {
-    let mut j_count = 0;
-    let mut e_count = 0;
-    for src_char in source.chars() {
-        if JAPANESE_REVERSE_CHARMAP.contains_key(&src_char) {
-            j_count += 1;
-        }
-        if EXPORT_REVERSE_CHARMAP.contains_key(&src_char) {
-            e_count += 1;
-        }
-    }
-
-    if (j_count == 0) && (e_count == 0) {
-        Err(ConversionError::NonRepresentableCharacterFound)
-    } else if j_count > e_count {
-        Ok(CharacterSet::Japanese)
-    } else {
-        Ok(CharacterSet::Export)
     }
 }
