@@ -18,9 +18,9 @@
 
 //! Sega SF-7000 Super Control Station disk/file routines
 
-use std::fmt;
-use std::collections::HashSet;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use std::collections::HashSet;
+use std::fmt;
 
 use sc3000_charset::{CharacterSet, SC3000String};
 
@@ -42,24 +42,24 @@ pub const SECTORS_PER_CLUSTER: usize = 4;
 pub const CLUSTER_SIZE: usize = SECTOR_SIZE * SECTORS_PER_CLUSTER;
 
 /// Offset of disk ID start
-pub const DISK_ID_START: usize		= 0;
+pub const DISK_ID_START: usize = 0;
 /// Offset of disk ID end
-pub const DISK_ID_END: usize		= 4;
+pub const DISK_ID_END: usize = 4;
 
 /// Offset of disk name start
-pub const DISK_NAME_START: usize	= 4;
+pub const DISK_NAME_START: usize = 4;
 /// Offset of disk name end
-pub const DISK_NAME_END: usize		= 32;
+pub const DISK_NAME_END: usize = 32;
 
 /// Offset of initial program loader start
-pub const DISK_IPL_START: usize		= 32;
+pub const DISK_IPL_START: usize = 32;
 /// Offset of initial program loader end (end of first sector)
-pub const DISK_IPL_END: usize		= SECTOR_SIZE;
+pub const DISK_IPL_END: usize = SECTOR_SIZE;
 
 /// Offset of reserved area start
-pub const DISK_RESERVED_0_START: usize	= SECTOR_SIZE;
+pub const DISK_RESERVED_0_START: usize = SECTOR_SIZE;
 /// Offset of reserved area end (end of first track)
-pub const DISK_RESERVED_0_END: usize	= TRACK_SIZE;
+pub const DISK_RESERVED_0_END: usize = TRACK_SIZE;
 
 /// Offset of system programs start (second track)
 pub const DISK_SYSTEM_PROGRAMS_START: usize = TRACK_SIZE;
@@ -67,20 +67,19 @@ pub const DISK_SYSTEM_PROGRAMS_START: usize = TRACK_SIZE;
 pub const DISK_SYSTEM_PROGRAMS_END: usize = 20 * TRACK_SIZE;
 
 /// Offset of directory start (after system programs)
-pub const DISK_DIRECTORY_START: usize	= DISK_SYSTEM_PROGRAMS_END;
+pub const DISK_DIRECTORY_START: usize = DISK_SYSTEM_PROGRAMS_END;
 /// Offset of directory end (12 sectors later)
-pub const DISK_DIRECTORY_END: usize	= DISK_DIRECTORY_START + (12 * SECTOR_SIZE);
+pub const DISK_DIRECTORY_END: usize = DISK_DIRECTORY_START + (12 * SECTOR_SIZE);
 
 /// Offset of file allocation table start (after directory)
-pub const DISK_FAT_START: usize		= DISK_DIRECTORY_END;
+pub const DISK_FAT_START: usize = DISK_DIRECTORY_END;
 /// Offset of file allocation table end
-pub const DISK_FAT_END: usize		= 21 * TRACK_SIZE;
+pub const DISK_FAT_END: usize = 21 * TRACK_SIZE;
 
 /// Offset of user data start (after FAT)
-pub const DISK_USER_START: usize	= DISK_FAT_END;
+pub const DISK_USER_START: usize = DISK_FAT_END;
 /// Offset of user data end (end of disk)
-pub const DISK_USER_END: usize		= DISK_SIZE;
-
+pub const DISK_USER_END: usize = DISK_SIZE;
 
 /// File types as stored on disk
 #[derive(Copy, Clone, PartialEq, Debug, IntoPrimitive, TryFromPrimitive)]
@@ -104,12 +103,10 @@ impl fmt::Display for FileType {
             FileType::Hexadecimal => write!(f, "hexadecimal"),
         }
     }
-
 }
 
-
-const FILE_ATTR_TYPE_MASK: u8	= 0x0f;
-const FILE_ATTR_RO: u8		= 0x80;
+const FILE_ATTR_TYPE_MASK: u8 = 0x0f;
+const FILE_ATTR_RO: u8 = 0x80;
 
 /// Size of each directory entry
 pub const DIR_ENTRY_SIZE: usize = 16;
@@ -120,7 +117,6 @@ pub const MAX_DIR_ENTRIES: usize = (12 * SECTOR_SIZE) / DIR_ENTRY_SIZE;
 #[derive(Clone, Default, Debug)]
 pub struct Disk {
     data: Vec<u8>,
-
 }
 
 impl Disk {
@@ -143,8 +139,7 @@ impl Disk {
 
     /// Disk name
     pub fn name(&self, cset: CharacterSet) -> String {
-        SC3000String::from_cset(&self.data[DISK_NAME_START..DISK_NAME_END], cset)
-            .to_string()
+        SC3000String::from_cset(&self.data[DISK_NAME_START..DISK_NAME_END], cset).to_string()
     }
 
     /// Initial Program Loader
@@ -177,7 +172,9 @@ impl Disk {
             files.push(File {
                 name: utf8_filename,
                 first_cluster: self.data[entry_start + 12],
-                file_type: (self.data[entry_start + 13] & FILE_ATTR_TYPE_MASK).try_into().unwrap(),
+                file_type: (self.data[entry_start + 13] & FILE_ATTR_TYPE_MASK)
+                    .try_into()
+                    .unwrap(),
                 readonly: self.data[entry_start + 13] & FILE_ATTR_RO != 0,
                 disk: self,
             });
@@ -191,7 +188,6 @@ impl Disk {
         self.data[i..i + SECTOR_SIZE].to_vec()
     }
 }
-
 
 /// SF-7000 file
 #[derive(Clone, Debug)]
@@ -210,21 +206,24 @@ pub struct File<'a> {
 
     /// Reference to disk structure this file is on
     disk: &'a Disk,
-
 }
 
-const FAT_LAST_CLUSTER_MASK: u8		= 0xf0;
-const FAT_LAST_CLUSTER_PREFIX: u8	= 0xc0;
+const FAT_LAST_CLUSTER_MASK: u8 = 0xf0;
+const FAT_LAST_CLUSTER_PREFIX: u8 = 0xc0;
 const FAT_LAST_CLUSTER_NUM_SECTORS_MASK: u8 = 0x0f;
-const FAT_RESERVED: u8			= 0xfe;
-const FAT_UNUSED: u8			= 0xff;
+const FAT_RESERVED: u8 = 0xfe;
+const FAT_UNUSED: u8 = 0xff;
 
 impl File<'_> {
     fn read_cluster(&self, cluster_num: u8) -> Vec<u8> {
         let mut dest = Vec::with_capacity(CLUSTER_SIZE);
 
         for s in 0..SECTORS_PER_CLUSTER {
-            dest.append(&mut self.disk.read_sector((((cluster_num as usize) * SECTORS_PER_CLUSTER) + s) as u16));
+            dest.append(
+                &mut self
+                    .disk
+                    .read_sector((((cluster_num as usize) * SECTORS_PER_CLUSTER) + s) as u16),
+            );
         }
 
         dest
@@ -263,5 +262,4 @@ impl File<'_> {
 
         contents
     }
-
 }

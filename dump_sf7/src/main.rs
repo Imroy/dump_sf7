@@ -23,8 +23,8 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 
-use sega_basic::*;
 use sc3000_charset::*;
+use sega_basic::*;
 use sf7000_fs::*;
 
 /// Match an input string against a pattern.
@@ -87,7 +87,10 @@ pub fn strmatch(input: &str, pat: &str) -> bool {
 }
 
 fn usage(progname: &str, opts: Options) {
-    let brief = format!("Usage: {} [options] <image.sf7> [filenames or wildcards...]", progname);
+    let brief = format!(
+        "Usage: {} [options] <image.sf7> [filenames or wildcards...]",
+        progname
+    );
     eprint!("{}", opts.usage(&brief));
     eprintln!();
     eprintln!("    If file names or wildcards are listed, only matching files will be processed.");
@@ -102,10 +105,15 @@ fn main() -> std::io::Result<()> {
     opts.optflag("l", "list", "List filenames. No extraction is performed.");
     opts.optflag("j", "japanese", "Use Japanese character map when converting text to UTF-8. The 'export' character map is used by default.");
     opts.optflag("r", "raw", "Raw output. Files are dumped as in the image with no Sega => UTF-8 conversion or BASIC detokenisation.");
-    opts.optflag("b", "basic", "BASIC detokenisation of all non-ASCII files, not just ones named *.BAS.");
+    opts.optflag(
+        "b",
+        "basic",
+        "BASIC detokenisation of all non-ASCII files, not just ones named *.BAS.",
+    );
     opts.optflag("t", "tape", "Detokenise BASIC using the list of statements and functions available to Sega SC-3000 BASIC Level 2 or 3 (on cartridge)");
 
-    let matches = opts.parse(&args[1..])
+    let matches = opts
+        .parse(&args[1..])
         .map_err(|e| std::io::Error::other(e.to_string()))?;
     if matches.opt_present("h") || matches.free.is_empty() {
         usage(&progname, opts);
@@ -113,10 +121,18 @@ fn main() -> std::io::Result<()> {
     }
 
     let only_list = matches.opt_present("l");
-    let cset = if matches.opt_present("j") { CharacterSet::Japanese } else { CharacterSet::Export };
+    let cset = if matches.opt_present("j") {
+        CharacterSet::Japanese
+    } else {
+        CharacterSet::Export
+    };
     let raw = matches.opt_present("r");
     let all_basic = matches.opt_present("b");
-    let basic_ver = if matches.opt_present("t") { SegaBasicVersion::CartridgeBasic } else { SegaBasicVersion::DiskBasic };
+    let basic_ver = if matches.opt_present("t") {
+        SegaBasicVersion::CartridgeBasic
+    } else {
+        SegaBasicVersion::DiskBasic
+    };
 
     let mut disk = Disk::new();
     {
@@ -163,7 +179,12 @@ fn main() -> std::io::Result<()> {
             }
         }
 
-        print!("{}\t{}\tread-{}", file.name, file.file_type, if file.readonly { "only" } else { "write" });
+        print!(
+            "{}\t{}\tread-{}",
+            file.name,
+            file.file_type,
+            if file.readonly { "only" } else { "write" }
+        );
 
         if only_list {
             println!();
@@ -178,13 +199,15 @@ fn main() -> std::io::Result<()> {
                 print!("\t[Sega text]");
                 outfile.write_all(sc3kstr.to_string().as_bytes())?;
             } else if file.file_type == FileType::NonAscii
-                && (all_basic || (file.name.len() >= 4 && &file.name[file.name.len()-4..] == ".BAS")) {
-                    print!("\t[BASIC]");
-                    outfile.write_all(detokenise(&sc3kstr, basic_ver).as_bytes())?;
-                } else {
-                    print!("\t[Raw]");
-                    outfile.write_all(&contents)?;
-                }
+                && (all_basic
+                    || (file.name.len() >= 4 && &file.name[file.name.len() - 4..] == ".BAS"))
+            {
+                print!("\t[BASIC]");
+                outfile.write_all(detokenise(&sc3kstr, basic_ver).as_bytes())?;
+            } else {
+                print!("\t[Raw]");
+                outfile.write_all(&contents)?;
+            }
         } else {
             print!("\t[Raw]");
             outfile.write_all(&contents)?;
