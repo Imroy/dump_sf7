@@ -348,10 +348,10 @@ impl SC3000String {
                 }
                 continue;
             }
-            if src_char.is_ascii() {
-                if let Some(b) = ASCII.get(&src_char) {
-                    bytes.push(*b);
-                }
+            if src_char.is_ascii()
+                && let Some(b) = ASCII.get(&src_char)
+            {
+                bytes.push(*b);
             }
             i += 1;
         }
