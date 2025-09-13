@@ -359,42 +359,46 @@ impl SC3000String {
 impl core::fmt::Display for SC3000String {
     /// Convert contained bytes into Unicode, write to the output formatter
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let mut src_iter = self.bytes.iter().peekable();
-        while let Some(&src_byte) = src_iter.next() {
+        let mut i = 0;
+        while i < self.bytes.len() {
+            let src_byte = self.bytes[i];
             if self.cset == CharacterSet::Export {
                 // Character 0xaf is handled with a combining character
                 if src_byte == 0xaf {
                     write!(f, "\u{0302}N")?;
+                    i += 1;
                     continue;
                 }
-                // Character 0xaf is handled with a combining character
+                // Character 0xb8 is handled with a combining character
                 if src_byte == 0xb8 {
                     write!(f, "\u{0327}O")?;
+                    i += 1;
                     continue;
                 }
                 // Handle 0xce "Combining half-A for Æ" followed by 'E'
-                if (src_byte == 0xce) && (src_iter.peek() == Some(&&0x45_u8)) {
+                if src_byte == 0xce && i + 1 < self.bytes.len() && self.bytes[i + 1] == 0x45 {
                     write!(f, "\u{00c6}")?;
-                    if src_iter.next().is_none() {
-                        break;
-                    }
+                    i += 2;
                     continue;
                 }
             }
             // Unused and invalid characters result in REPLACEMENT CHARACTER
             if self.cset.unused_contains(&src_byte) || INVALID.contains(&src_byte) {
                 write!(f, "\u{fffd}")?;
+                i += 1;
                 continue;
             }
             // Characters in the charmap result in the value
             if let Some(c) = self.cset.get(&src_byte) {
                 write!(f, "{}", *c)?;
+                i += 1;
                 continue;
             }
             // Just add the character if it's a valid ASCII code
             if src_byte < 128 {
                 write!(f, "{}", char::from(src_byte))?;
             }
+            i += 1;
         }
 
         Ok(())
