@@ -296,6 +296,13 @@ impl SC3000String {
         }
     }
 
+    const N_CIRCUMFLEX_CODE: u8 = 0xaf;
+    const N_CIRCUMFLEX_STR: &str = "\u{0302}N";
+    const O_CEDILLA_CODE: u8 = 0xb8;
+    const O_CEDILLA_STR: &str = "\u{0327}O";
+    const AE_HALF_A_CODE: u8 = 0xce;
+    const AE_CHAR: char = '\u{00c6}';
+
     /// Constructor from a Unicode string and a [CharacterSet]
     pub fn from_string(source: &str, cset: CharacterSet) -> Self {
         let mut bytes: Vec<u8> = Vec::with_capacity(source.len());
@@ -305,22 +312,22 @@ impl SC3000String {
             let src_char = source[i..].chars().next().unwrap();
             if cset == CharacterSet::Export {
                 // Handle 0xaf using a combining character
-                if source[i..].starts_with("\u{0302}N") {
-                    bytes.push(0xaf);
-                    i += 3;
+                if source[i..].starts_with(Self::N_CIRCUMFLEX_STR) {
+                    bytes.push(Self::N_CIRCUMFLEX_CODE);
+                    i += Self::N_CIRCUMFLEX_STR.len();
                     continue;
                 }
                 // Handle 0xb8 using a combining character
-                if source[i..].starts_with("\u{0327}O") {
-                    bytes.push(0xb8);
-                    i += 3;
+                if source[i..].starts_with(Self::O_CEDILLA_STR) {
+                    bytes.push(Self::O_CEDILLA_CODE);
+                    i += Self::O_CEDILLA_STR.len();
                     continue;
                 }
                 // Handle Æ
-                if src_char == '\u{00c6}' {
-                    bytes.push(0xce); // "Combining half-A for Æ"
-                    bytes.push(0x45); // 'E'
-                    i += 2;
+                if src_char == Self::AE_CHAR {
+                    bytes.push(Self::AE_HALF_A_CODE); // "Combining half-A for Æ"
+                    bytes.push(b'E');
+                    i += Self::AE_CHAR.len_utf8();
                     continue;
                 }
             }
@@ -364,20 +371,23 @@ impl core::fmt::Display for SC3000String {
             let src_byte = self.bytes[i];
             if self.cset == CharacterSet::Export {
                 // Character 0xaf is handled with a combining character
-                if src_byte == 0xaf {
-                    write!(f, "\u{0302}N")?;
+                if src_byte == Self::N_CIRCUMFLEX_CODE {
+                    write!(f, "{}", Self::N_CIRCUMFLEX_STR)?;
                     i += 1;
                     continue;
                 }
                 // Character 0xb8 is handled with a combining character
-                if src_byte == 0xb8 {
-                    write!(f, "\u{0327}O")?;
+                if src_byte == Self::O_CEDILLA_CODE {
+                    write!(f, "{}", Self::O_CEDILLA_STR)?;
                     i += 1;
                     continue;
                 }
                 // Handle 0xce "Combining half-A for Æ" followed by 'E'
-                if src_byte == 0xce && i + 1 < self.bytes.len() && self.bytes[i + 1] == 0x45 {
-                    write!(f, "\u{00c6}")?;
+                if src_byte == Self::AE_HALF_A_CODE
+                    && i + 1 < self.bytes.len()
+                    && self.bytes[i + 1] == b'E'
+                {
+                    write!(f, "{}", Self::AE_CHAR)?;
                     i += 2;
                     continue;
                 }
