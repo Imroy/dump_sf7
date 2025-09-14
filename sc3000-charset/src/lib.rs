@@ -209,6 +209,9 @@ pub enum CharacterSet {
     /// | **Dx** | ミ | ム | メ | モ | ヤ | ユ | ヨ | ラ | リ | ル | レ | ロ | ワ | ン | ゛ | ゜
     /// | **Ex** | ▎ | ▌ | ▐ | 🮇 | ▕ | █ | � | � | � | � | ▞ | ○ | ● | 年 | 月 | 日 |
     /// | **Fx** | 火 | 水 | 木 | 金 | 土 | ♠ | ♥ | ♦ | ♣ | � | � | � | � | 🯅 | ÷ | � |
+    ///
+    /// Note:
+    /// - 0x5c is `¥` instead of `\`, and 0x5f is `π` instead of `_`, as in standard ASCII
     Japanese,
 
     /// Character set used by 'Export' models i.e for use with Western European languages
@@ -229,6 +232,13 @@ pub enum CharacterSet {
     /// | **Dx** | � | � | � | � | � | � | � | � | � | � | � | � | � | � | � | � |
     /// | **Ex** | ▎ | ▌ | ▐ | 🮇 | ▕ | █ | � | � | � | � | ▞ | ○ | ● | � | � | � |
     /// | **Fx** | � | � | � | � | � | ♠ | ♥ | ♦ | ♣ | � | � | � | � | 🯅 | ÷ | � |
+    ///
+    /// Note:
+    /// - 0x5c is `¥` instead of `\`, and 0x5f is `π` instead of `_`, as in standard ASCII
+    /// - 0xaf and 0xb8 require the use of combining characters in Unicode
+    ///   because no single code point exists for the equivalent characters
+    /// - 0xce is a combining character used before an 'E' to achieve the
+    ///   appearance of an 'Æ' character
     Export,
 }
 
