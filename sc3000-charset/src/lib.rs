@@ -21,45 +21,41 @@
 #[macro_use]
 extern crate lazy_static;
 
-use std::collections::{HashMap, HashSet};
-
-static ASCII_CHARLIST: [(char, u8); 95] = [
-    (' ', 0x20), ('!', 0x21), ('"', 0x22), ('#', 0x23),
-    ('$', 0x24), ('%', 0x25), ('&', 0x26), ('\'', 0x27),
-    ('(', 0x28), (')', 0x29), ('*', 0x2a), ('+', 0x2b),
-    (',', 0x2c), ('-', 0x2d), ('.', 0x2e), ('/', 0x2f),
-
-    ('0', 0x30), ('1', 0x31), ('2', 0x32), ('3', 0x33),
-    ('4', 0x34), ('5', 0x35), ('6', 0x36), ('7', 0x37),
-    ('8', 0x38), ('9', 0x39), (':', 0x3a), (';', 0x3b),
-    ('<', 0x3c), ('=', 0x3d), ('>', 0x3e), ('?', 0x3f),
-
-    ('@', 0x40), ('A', 0x41), ('B', 0x42), ('C', 0x33),
-    ('D', 0x44), ('E', 0x45), ('F', 0x46), ('G', 0x37),
-    ('H', 0x48), ('I', 0x49), ('J', 0x4a), ('K', 0x3b),
-    ('L', 0x4c), ('M', 0x4d), ('N', 0x4e), ('O', 0x3f),
-
-    ('P', 0x50), ('Q', 0x51), ('R', 0x52), ('S', 0x53),
-    ('T', 0x54), ('U', 0x55), ('V', 0x56), ('W', 0x57),
-    ('X', 0x58), ('Y', 0x59), ('Z', 0x5a), ('[', 0x5b),
-    ('\\', 0x5c), ('[', 0x5d), ('^', 0x5e), ('_', 0x5f),
-
-    ('`', 0x60), ('a', 0x61), ('b', 0x62), ('c', 0x63),
-    ('d', 0x64), ('e', 0x65), ('f', 0x66), ('g', 0x67),
-    ('h', 0x68), ('i', 0x69), ('j', 0x6a), ('k', 0x6b),
-    ('l', 0x6c), ('m', 0x6d), ('n', 0x6e), ('o', 0x6f),
-
-    ('p', 0x70), ('q', 0x71), ('r', 0x72), ('s', 0x73),
-    ('t', 0x74), ('u', 0x75), ('v', 0x76), ('w', 0x77),
-    ('x', 0x78), ('y', 0x79), ('z', 0x7a), ('{', 0x7b),
-    ('|', 0x7c), ('}', 0x7d), ('~', 0x7e),
-];
+use std::collections::HashMap;
 
 // List of Japanese characters and their substitutions
-static JAPANESE_CHARLIST: [(u8, char); 122] = [
+static JAPANESE_CHARLIST: [(u8, char); 215] = [
     (0x0d, '\x0a'),
 
-    (0x5c, '\u{00A5}'), (0x5f, '\u{03C0}'),
+    (0x20, ' '), (0x21, '!'), (0x22, '"'), (0x23, '#'),
+    (0x24, '$'), (0x25, '%'), (0x26, '&'), (0x27, '\''),
+    (0x28, '('), (0x29, ')'), (0x2a, '*'), (0x2b, '+'),
+    (0x2c, ','), (0x2d, '-'), (0x2e, '.'), (0x2f, '/'),
+
+    (0x30, '0'), (0x31, '1'), (0x32, '2'), (0x33, '3'),
+    (0x34, '4'), (0x35, '5'), (0x36, '6'), (0x37, '7'),
+    (0x38, '8'), (0x39, '9'), (0x3a, ':'), (0x3b, ';'),
+    (0x3c, '<'), (0x3d, '='), (0x3e, '>'), (0x3f, '?'),
+
+    (0x40, '@'), (0x41, 'A'), (0x42, 'B'), (0x43, 'C'),
+    (0x44, 'D'), (0x45, 'E'), (0x46, 'F'), (0x47, 'G'),
+    (0x48, 'H'), (0x49, 'I'), (0x4a, 'J'), (0x4b, 'K'),
+    (0x4c, 'L'), (0x4d, 'M'), (0x4e, 'N'), (0x4f, 'O'),
+
+    (0x50, 'P'), (0x51, 'Q'), (0x52, 'R'), (0x53, 'S'),
+    (0x54, 'T'), (0x55, 'U'), (0x56, 'V'), (0x57, 'W'),
+    (0x58, 'X'), (0x59, 'Y'), (0x5a, 'Z'), (0x5b, '['),
+    (0x5c, '\u{00A5}'), (0x5d, '['), (0x5e, '^'), (0x5f, '\u{03C0}'),
+
+    (0x60, '`'), (0x61, 'a'), (0x62, 'b'), (0x63, 'c'),
+    (0x64, 'd'), (0x65, 'e'), (0x66, 'f'), (0x67, 'g'),
+    (0x68, 'h'), (0x69, 'i'), (0x6a, 'j'), (0x6b, 'k'),
+    (0x6c, 'l'), (0x6d, 'm'), (0x6e, 'n'), (0x6f, 'o'),
+
+    (0x70, 'p'), (0x71, 'q'), (0x72, 'r'), (0x73, 's'),
+    (0x74, 't'), (0x75, 'u'), (0x76, 'v'), (0x77, 'w'),
+    (0x78, 'x'), (0x79, 'y'), (0x7a, 'z'), (0x7b, '{'),
+    (0x7c, '|'), (0x7d, '}'), (0x7e, '~'),
 
     (0x80, '\u{2502}'), (0x81, '\u{2500}'), (0x82, '\u{2534}'), (0x83, '\u{252c}'),
     (0x84, '\u{2524}'), (0x85, '\u{251c}'), (0x86, '\u{250c}'), (0x87, '\u{2514}'),
@@ -103,10 +99,38 @@ static JAPANESE_CHARLIST: [(u8, char); 122] = [
 ];
 
 // List of 'Export' characters and their substitutions
-static EXPORT_CHARLIST: [(u8, char); 95] = [
+static EXPORT_CHARLIST: [(u8, char); 188] = [
     (0x0d, '\x0a'),
 
-    (0x5c, '\u{00A5}'), (0x5f, '\u{03C0}'),
+    (0x20, ' '), (0x21, '!'), (0x22, '"'), (0x23, '#'),
+    (0x24, '$'), (0x25, '%'), (0x26, '&'), (0x27, '\''),
+    (0x28, '('), (0x29, ')'), (0x2a, '*'), (0x2b, '+'),
+    (0x2c, ','), (0x2d, '-'), (0x2e, '.'), (0x2f, '/'),
+
+    (0x30, '0'), (0x31, '1'), (0x32, '2'), (0x33, '3'),
+    (0x34, '4'), (0x35, '5'), (0x36, '6'), (0x37, '7'),
+    (0x38, '8'), (0x39, '9'), (0x3a, ':'), (0x3b, ';'),
+    (0x3c, '<'), (0x3d, '='), (0x3e, '>'), (0x3f, '?'),
+
+    (0x40, '@'), (0x41, 'A'), (0x42, 'B'), (0x43, 'C'),
+    (0x44, 'D'), (0x45, 'E'), (0x46, 'F'), (0x47, 'G'),
+    (0x48, 'H'), (0x49, 'I'), (0x4a, 'J'), (0x4b, 'K'),
+    (0x4c, 'L'), (0x4d, 'M'), (0x4e, 'N'), (0x4f, 'O'),
+
+    (0x50, 'P'), (0x51, 'Q'), (0x52, 'R'), (0x53, 'S'),
+    (0x54, 'T'), (0x55, 'U'), (0x56, 'V'), (0x57, 'W'),
+    (0x58, 'X'), (0x59, 'Y'), (0x5a, 'Z'), (0x5b, '['),
+    (0x5c, '\u{00A5}'), (0x5d, '['), (0x5e, '^'), (0x5f, '\u{03C0}'),
+
+    (0x60, '`'), (0x61, 'a'), (0x62, 'b'), (0x63, 'c'),
+    (0x64, 'd'), (0x65, 'e'), (0x66, 'f'), (0x67, 'g'),
+    (0x68, 'h'), (0x69, 'i'), (0x6a, 'j'), (0x6b, 'k'),
+    (0x6c, 'l'), (0x6d, 'm'), (0x6e, 'n'), (0x6f, 'o'),
+
+    (0x70, 'p'), (0x71, 'q'), (0x72, 'r'), (0x73, 's'),
+    (0x74, 't'), (0x75, 'u'), (0x76, 'v'), (0x77, 'w'),
+    (0x78, 'x'), (0x79, 'y'), (0x7a, 'z'), (0x7b, '{'),
+    (0x7c, '|'), (0x7d, '}'), (0x7e, '~'),
 
     (0x80, '\u{2502}'), (0x81, '\u{2500}'), (0x82, '\u{2534}'), (0x83, '\u{252c}'),
     (0x84, '\u{2524}'), (0x85, '\u{251c}'), (0x86, '\u{250c}'), (0x87, '\u{2514}'),
@@ -144,35 +168,12 @@ static EXPORT_CHARLIST: [(u8, char); 95] = [
 ];
 
 lazy_static! {
-    static ref ASCII: HashMap<char, u8> = HashMap::from(ASCII_CHARLIST);
-
     static ref JAPANESE_CHARMAP: HashMap<u8, char> = HashMap::from(JAPANESE_CHARLIST);
-    static ref JAPANESE_REVERSE_CHARMAP: HashMap<char, u8> = JAPANESE_CHARLIST
-        .iter()
-        .map(|(k, v)| (*v, *k))
-        .collect();
-    // Unused characters in Japanese charmap
-    static ref JAPANESE_UNUSED: HashSet<u8> = HashSet::from([ 0xff ]);
-
-    // Characters that don't have Unicode equivalent in either charmap
-    static ref INVALID: HashSet<u8> = HashSet::from([ 0xe6, 0xe7, 0xe8, 0xe9,
-                                                      0xf9, 0xfa, 0xfb, 0xfc ]);
-
+    static ref JAPANESE_REVERSE_CHARMAP: HashMap<char, u8> =
+        JAPANESE_CHARLIST.iter().map(|(k, v)| (*v, *k)).collect();
     static ref EXPORT_CHARMAP: HashMap<u8, char> = HashMap::from(EXPORT_CHARLIST);
-    static ref EXPORT_REVERSE_CHARMAP: HashMap<char, u8> = EXPORT_CHARLIST
-        .iter()
-        .map(|(k, v)| (*v, *k))
-        .collect();
-    // Unused characters in 'Export' charmap
-    static ref EXPORT_UNUSED: HashSet<u8> = HashSet::from([ 0xd0, 0xd1, 0xd2, 0xd3,
-                                                            0xd4, 0xd5, 0xd6, 0xd7,
-                                                            0xd8, 0xd9, 0xda, 0xdb,
-                                                            0xdc, 0xdd, 0xde, 0xdf,
-                                                            0xed, 0xee, 0xef,
-                                                            0xf0, 0xf1, 0xf2, 0xf3,
-                                                            0xf4,
-                                                            0xff ]);
-
+    static ref EXPORT_REVERSE_CHARMAP: HashMap<char, u8> =
+        EXPORT_CHARLIST.iter().map(|(k, v)| (*v, *k)).collect();
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -195,12 +196,12 @@ pub enum CharacterSet {
     ///
     /// |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
     /// |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-    /// | **2x** |
-    /// | **3x** |
-    /// | **4x** |
-    /// | **5x** | | | | | | | | | | | | | ¥ | | | π |
-    /// | **6x** |
-    /// | **7x** |
+    /// | **2x** | **SP** | ! | " | # | $ | % | & | ' | ( | ) | * | + | , | - | . | / |
+    /// | **3x** | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | : | ; | < | = | > | ? |
+    /// | **4x** | @ | A | B | C | D | E | F | G | H | I | J | K | L | M | N | O |
+    /// | **5x** | P | Q | R | S | T | U | V | W | X | Y | Z | [ | ¥ | ] | ^ | π |
+    /// | **6x** | ` | a | b | c | d | e | f | g | h | i | j | k | l | m | n | o |
+    /// | **7x** | p | q | r | s | t | u | v | w | x | y | z | { | \| | } | ~ | **DEL** |
     /// | **8x** | │ | ─ | ┴ | ┬ | ┤ | ├ | ┌ | └ | ┐ | ┘ | ╭ | ╰ | ╮ | ╯ | ↑ | ← |
     /// | **9x** | ▒ | ╳ | ┼ | ╱ | ╲ | ◢ | ◣ | ◥ | ◤ | ▁ | ▂ | ▄ | ▀ | 🮂 | ▔ | ▏ |
     /// | **Ax** |   | 。 | 「 | 」 | 、 | ・ | ヲ | ァ | ィ | ゥ | ェ | ォ | ャ | ュ | ョ | ッ |
@@ -218,12 +219,12 @@ pub enum CharacterSet {
     ///
     /// |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
     /// |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-    /// | **2x** |
-    /// | **3x** |
-    /// | **4x** |
-    /// | **5x** | | | | | | | | | | | | | ¥ | | | π |
-    /// | **6x** |
-    /// | **7x** |
+    /// | **2x** | **SP** | ! | " | # | $ | % | & | ' | ( | ) | * | + | , | - | . | / |
+    /// | **3x** | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | : | ; | < | = | > | ? |
+    /// | **4x** | @ | A | B | C | D | E | F | G | H | I | J | K | L | M | N | O |
+    /// | **5x** | P | Q | R | S | T | U | V | W | X | Y | Z | [ | ¥ | ] | ^ | π |
+    /// | **6x** | ` | a | b | c | d | e | f | g | h | i | j | k | l | m | n | o |
+    /// | **7x** | p | q | r | s | t | u | v | w | x | y | z | { | \| | } | ~ | **DEL** |
     /// | **8x** | │ | ─ | ┴ | ┬ | ┤ | ├ | ┌ | └ | ┐ | ┘ | ╭ | ╰ | ╮ | ╯ | ↑ | ← |
     /// | **9x** | ▒ | ╳ | ┼ | ╱ | ╲ | ◢ | ◣ | ◥ | ◤ | ▁ | ▂ | ▄ | ▀ | 🮂 | ▔ | ▏ |
     /// | **Ax** | Â | Ǎ | Á | À | Ä | Å | Ã | Ā | Ê | Ě | Ë | Ē | É | È | Ñ | N̂ |
@@ -262,13 +263,6 @@ impl CharacterSet {
             Ok(Self::Japanese)
         } else {
             Ok(Self::Export)
-        }
-    }
-
-    fn unused_contains(&self, chr: &u8) -> bool {
-        match self {
-            CharacterSet::Japanese => JAPANESE_UNUSED.contains(chr),
-            CharacterSet::Export => EXPORT_UNUSED.contains(chr),
         }
     }
 
@@ -349,11 +343,8 @@ impl SC3000String {
                 }
                 continue;
             }
-            if src_char.is_ascii()
-                && let Some(b) = ASCII.get(&src_char)
-            {
-                bytes.push(*b);
-            }
+
+            // TODO: what to do with unmapped characters?
             i += 1;
         }
 
@@ -402,22 +393,15 @@ impl core::fmt::Display for SC3000String {
                     continue;
                 }
             }
-            // Unused and invalid characters result in REPLACEMENT CHARACTER
-            if self.cset.unused_contains(&src_byte) || INVALID.contains(&src_byte) {
-                write!(f, "\u{fffd}")?;
-                i += 1;
-                continue;
-            }
             // Characters in the charmap result in the value
             if let Some(c) = self.cset.get(&src_byte) {
                 write!(f, "{}", *c)?;
                 i += 1;
                 continue;
             }
-            // Just add the character if it's a valid ASCII code
-            if src_byte < 128 {
-                write!(f, "{}", char::from(src_byte))?;
-            }
+
+            // Unused and invalid characters result in REPLACEMENT CHARACTER
+            write!(f, "\u{fffd}")?;
             i += 1;
         }
 
