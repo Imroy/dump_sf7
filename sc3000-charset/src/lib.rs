@@ -274,15 +274,15 @@ impl CharacterSet {
 
     fn get(&self, byte: &u8) -> Option<&char> {
         match self {
-            CharacterSet::Japanese => JAPANESE_CHARMAP.get(byte),
-            CharacterSet::Export => EXPORT_CHARMAP.get(byte),
+            Self::Japanese => JAPANESE_CHARMAP.get(byte),
+            Self::Export => EXPORT_CHARMAP.get(byte),
         }
     }
 
     fn get_reverse(&self, chr: &char) -> Option<&u8> {
         match self {
-            CharacterSet::Japanese => JAPANESE_REVERSE_CHARMAP.get(chr),
-            CharacterSet::Export => EXPORT_REVERSE_CHARMAP.get(chr),
+            Self::Japanese => JAPANESE_REVERSE_CHARMAP.get(chr),
+            Self::Export => EXPORT_REVERSE_CHARMAP.get(chr),
         }
     }
 }
