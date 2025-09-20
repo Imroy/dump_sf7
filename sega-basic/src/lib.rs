@@ -30,40 +30,11 @@
 //! ### Content format
 //! - Content is mostly 'statement' byte codes with ASCII characters
 //! - Statement and function codes have their high bit set, so they can be easily distinguished
-//! from regular ASCII text
+//!   from regular ASCII text
 //! - A 'function' byte code appears after a 0x80 byte
 //! - Quoted text strings and anything after a REM or DATA statement can use the whole 8-bit [character set](sc3000_charset::CharacterSet)
 //!
-//! ## Statements
-//!
-//! Disk BASIC:
-//! - Added INPUT (0x81)
-//! - Renamed SAVE/LOAD to CSAVE/CLOAD (0x88, 0x89)
-//! - Added FILES, LFILES, BOOT (0x8d-8f)
-//! - Added OPEN, CLOSE, COMSET (0xbd-bf)
-//! - Added the 0xd0-0xdc and 0xf0-0xf9 lines
-//! - Added APPEND and OUTPUT (0xe6, 0xe7)
-//!
-//! |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
-//! |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-//! | **8x** | | INPUT | LIST | LLIST | AUTO | DELETE | RUN | CONT | CLOAD (was LOAD) | CSAVE (was SAVE)| VERIFY | NEW | RENUM | FILES | LFILES | BOOT |
-//! | **9x** | REM | PRINT or ? | LPRINT or L? | DATA | DEF | INPUT | READ | STOP | END | LET | DIM | FOR | NEXT | GOTO | GOSUB | GO |
-//! | **Ax** | ON | RETURN | ERASE | CURSOR | IF | RESTORE | SCREEN | COLOR | LINE | SOUND | BEEP | CONSOLE | CLS | OUT | CALL | POKE |
-//! | **Bx** | PSET | PRESET | PAINT | BLINE | POSITION | HCOPY | SPRITE | PATTERN | CIRCLE | BCIRCLE | MAG | VPOKE | MOTOR | OPEN | CLOSE | COMSET |
-//! | **Cx** | ^ | * | / | MOD | + | - | <> or >< | >= or => | <= or =< | > | < | = | NOT | AND | OR | XOR |
-//! | **Dx** | CLOADM | CSAVEM | VERIFYM | SAVEM | LOADM | LIMIT | GET | PUT | DSKI$ | DSKO$ | KILL | SET | NAME |
-//! | **Ex** | FN | TO | STEP | THEN | TAB | SPC | APPEND | OUTPUT |
-//! | **Fx** | SAVE | LOAD | | | | MERGE | COMSAVE | COMLOAD | UTILITY | MAXFILE |
-//!
-//! ## Functions
-//!
-//! Disk BASIC added EOF, LOC, LOF, and DSKF (0x9b-0x9e).
-//!
-//! |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
-//! |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
-//! | **8x** | ABS | RND | SIN | COS | TAN | ASN | ACS | ATN | LOG | LGT | LTW | EXP | RAD | DEG | PI | SQR |
-//! | **9x** | INT | SGN | ASC | LEN | VAL | PEEK | INP | FRE | VPEEK | STICK | STRIG | EOF | LOC | LOF | DSKF | |
-//! | **Ax** | CHR$ | HEX$ | INKEY$ | LEFT$ | RIGHT$ | MID$ | STR$ | TIME$ |
+//! See [SegaBasicVersion] for tables of the statment and function values.
 
 #[macro_use]
 extern crate lazy_static;
@@ -77,9 +48,49 @@ use sc3000_charset::{CharacterSet, SC3000String};
 #[derive(Copy, Clone, Eq, Hash, PartialEq)]
 pub enum SegaBasicVersion {
     /// Sega SC-3000 BASIC Level 2 or 3 v1.0 (1983; cartridge)
+    ///
+    /// ## Statements
+    /// |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
+    /// |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+    /// | **8x** | | | LIST | LLIST | AUTO | DELETE | RUN | CONT | LOAD | SAVE| VERIFY | NEW | RENUM | | | BOOT |
+    /// | **9x** | REM | PRINT or ? | LPRINT or L? | DATA | DEF | INPUT | READ | STOP | END | LET | DIM | FOR | NEXT | GOTO | GOSUB | GO |
+    /// | **Ax** | ON | RETURN | ERASE | CURSOR | IF | RESTORE | SCREEN | COLOR | LINE | SOUND | BEEP | CONSOLE | CLS | OUT | CALL | POKE |
+    /// | **Bx** | PSET | PRESET | PAINT | BLINE | POSITION | HCOPY | SPRITE | PATTERN | CIRCLE | BCIRCLE | MAG | VPOKE | MOTOR | | | |
+    /// | **Cx** | ^ | * | / | MOD | + | - | <> or >< | >= or => | <= or =< | > | < | = | NOT | AND | OR | XOR |
+    /// | **Dx** | | | | | | | | | | | | | |
+    /// | **Ex** | FN | TO | STEP | THEN | TAB | SPC | APPEND | OUTPUT |
+    /// | **Fx** | | | | | | | | | | |
+    ///
+    /// ## Functions
+    /// |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
+    /// |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+    /// | **8x** | ABS | RND | SIN | COS | TAN | ASN | ACS | ATN | LOG | LGT | LTW | EXP | RAD | DEG | PI | SQR |
+    /// | **9x** | INT | SGN | ASC | LEN | VAL | PEEK | INP | FRE | VPEEK | STICK | STRIG | | | | | |
+    /// | **Ax** | CHR$ | HEX$ | INKEY$ | LEFT$ | RIGHT$ | MID$ | STR$ | TIME$ |
     CartridgeBasic,
 
     /// Sega SC-3000 Disk BASIC v1.0p or v1.1p (1984; floppy)
+    ///
+    /// New statements and functions are highlighted in bold.
+    ///
+    /// ## Statements
+    /// |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
+    /// |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+    /// | **8x** | | INPUT | LIST | LLIST | AUTO | DELETE | RUN | CONT | **CLOAD** | **CSAVE** | VERIFY | NEW | RENUM | FILES | LFILES | BOOT |
+    /// | **9x** | REM | PRINT or ? | LPRINT or L? | DATA | DEF | INPUT | READ | STOP | END | LET | DIM | FOR | NEXT | GOTO | GOSUB | GO |
+    /// | **Ax** | ON | RETURN | ERASE | CURSOR | IF | RESTORE | SCREEN | COLOR | LINE | SOUND | BEEP | CONSOLE | CLS | OUT | CALL | POKE |
+    /// | **Bx** | PSET | PRESET | PAINT | BLINE | POSITION | HCOPY | SPRITE | PATTERN | CIRCLE | BCIRCLE | MAG | VPOKE | MOTOR | OPEN | CLOSE | COMSET |
+    /// | **Cx** | ^ | * | / | MOD | + | - | <> or >< | >= or => | <= or =< | > | < | = | NOT | AND | OR | XOR |
+    /// | **Dx** | **CLOADM** | **CSAVEM** | **VERIFYM** | **SAVEM** | **LOADM** | **LIMIT** | **GET** | **PUT** | **DSKI$** | **DSKO$** | **KILL** | **SET** | **NAME** |
+    /// | **Ex** | FN | TO | STEP | THEN | TAB | SPC | APPEND | OUTPUT |
+    /// | **Fx** | **SAVE** | **LOAD** | | | | **MERGE** | **COMSAVE** | **COMLOAD** | **UTILITY** | **MAXFILE** |
+    ///
+    /// ## Functions
+    /// |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
+    /// |----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|
+    /// | **8x** | ABS | RND | SIN | COS | TAN | ASN | ACS | ATN | LOG | LGT | LTW | EXP | RAD | DEG | PI | SQR |
+    /// | **9x** | INT | SGN | ASC | LEN | VAL | PEEK | INP | FRE | VPEEK | STICK | STRIG | **EOF** | **LOC** | **LOF** | **DSKF** | |
+    /// | **Ax** | CHR$ | HEX$ | INKEY$ | LEFT$ | RIGHT$ | MID$ | STR$ | TIME$ |
     DiskBasic,
 }
 
