@@ -94,6 +94,361 @@ pub enum SegaBasicVersion {
     DiskBasic,
 }
 
+/// A whole Sega BASIC program, containing multiple lines
+#[derive(Clone, Debug)]
+pub struct SegaBasicProgram {
+    /// Lines of BASIC source code
+    lines: Vec<SegaBasicLine>,
+
+    /// Version of BASIC
+    bver: SegaBasicVersion,
+
+    /// Character set
+    cset: CharacterSet,
+}
+
+impl SegaBasicProgram {
+    /// Constructor from a slice of bytes
+    pub fn new(bytes: &[u8], bver: SegaBasicVersion, cset: CharacterSet) -> Self {
+        let mut lines = Vec::new();
+
+        let mut i = 0;
+        while i < bytes.len() {
+            // First byte is the content length
+            let content_length = bytes[i];
+            if content_length == 0 {
+                break;
+            }
+
+            lines.push(SegaBasicLine::new(
+                &bytes[i..i + 5 + content_length as usize],
+            ));
+            i += 5 + content_length as usize;
+            i += 1; // newline
+        }
+
+        Self { lines, bver, cset }
+    }
+
+    /// Tokenise a Unicode string into a new program
+    pub fn tokenise(source: &str, bver: SegaBasicVersion, cset: CharacterSet) -> Self {
+        let mut lines = Vec::new();
+        for line_str in source.lines() {
+            let line = SegaBasicLine::tokenise(line_str, bver, cset);
+            lines.push(line);
+        }
+
+        Self { bver, cset, lines }
+    }
+
+    /// Return the tokenised bytes of the complete program
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut output = Vec::new();
+
+        for line in &self.lines {
+            output.extend(line.complete_bytes());
+        }
+
+        output
+    }
+
+    /// Detokenise the program into a Unicode string
+    pub fn detokenise(&self) -> String {
+        let mut output = String::new();
+
+        for line in &self.lines {
+            output.push_str(&line.detokenise(self.bver, self.cset));
+            output.push('\x0a');
+        }
+        output.shrink_to_fit();
+
+        output
+    }
+
+    /// Add a line to the program
+    pub fn add_line(&mut self, line: &SegaBasicLine) {
+        let index = self.lines.iter().position(|l| l.lineno >= line.lineno).unwrap_or(self.lines.len());
+        self.lines.insert(index, line.clone());
+    }
+
+    /// Remove a line from the program
+    ///
+    /// Returns the line if it was found
+    pub fn remove_line(&mut self, lineno: u16) -> Option<SegaBasicLine> {
+        self.lines.iter().position(|l| l.lineno == lineno).and_then(|index| Some(self.lines.remove(index)))
+    }
+
+    /// Sort the list of lines of the program by their line number
+    pub fn sort_lines(&mut self) {
+        self.lines.sort_unstable_by(|a, b| a.lineno.cmp(&b.lineno));
+    }
+
+    /// Renumber the lines of the program
+    ///
+    /// Sorts the lines first.
+    pub fn renumber(&mut self, start: u16, incr: u16) {
+        self.lines.sort_unstable_by(|a, b| a.lineno.cmp(&b.lineno));
+
+        let mut n = start;
+        for line in &mut self.lines {
+            line.lineno = n;
+
+            n += incr;
+        }
+    }
+}
+
+/// A line of Sega BASIC code
+#[derive(Clone, Debug)]
+pub struct SegaBasicLine {
+    /// Line number
+    lineno: u16,
+
+    /// Bytes of the line, after the line number
+    content_bytes: Vec<u8>,
+}
+
+impl SegaBasicLine {
+    /// Simple constructor from a slice of bytes
+    pub fn new(line_bytes: &[u8]) -> Self {
+        let lineno = (line_bytes[1] as u16) | ((line_bytes[2] as u16) << 8);
+        Self {
+            lineno,
+            content_bytes: line_bytes[5..].to_vec(),
+        }
+    }
+
+    /// Tokenise a line of Unicode text into bytes
+    pub fn tokenise(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> Self {
+        let space_i = line.find(' ').unwrap();
+        let lineno = line[0..space_i].parse::<u16>().unwrap();
+
+        let mut content_bytes = Vec::<u8>::with_capacity(line.len() / 5);
+        let mut temp_line = String::new();
+
+        let mut state = TokenState::Statement;
+        let mut j = space_i + 1;
+        while j < line.len() {
+            let c = line[j..].chars().next().unwrap();
+
+            match state {
+                TokenState::Statement => {
+                    if let Some(num) = ALIASES
+                        .iter()
+                        .position(|alias| line[j..].starts_with(alias.0))
+                    {
+                        flush_line(&mut content_bytes, &mut temp_line, cset);
+                        content_bytes.push(ALIASES[num].1);
+
+                        j += ALIASES[num].0.len();
+                        continue;
+                    }
+
+                    if let Some((&stmt_code, &statement)) = STATEMENTS[bver as usize]
+                        .iter()
+                        .filter(|&(_, v)| line[j..].starts_with(v))
+                        .max_by_key(|&(_, v)| v.len())
+                    {
+                        flush_line(&mut content_bytes, &mut temp_line, cset);
+                        content_bytes.push(stmt_code);
+
+                        // REM
+                        if stmt_code == 0x90 || stmt_code == 0x93 {
+                            state = TokenState::RemarkOrData;
+                        }
+
+                        j += statement.len();
+                        continue;
+                    }
+
+                    if let Some((&func_code, &func_name)) = FUNCS[bver as usize]
+                        .iter()
+                        .filter(|&(_, v)| line[j..].starts_with(v))
+                        .max_by_key(|&(_, v)| v.len())
+                    {
+                        flush_line(&mut content_bytes, &mut temp_line, cset);
+                        content_bytes.push(0x80);
+                        content_bytes.push(func_code);
+
+                        j += func_name.len();
+                        continue;
+                    }
+
+                    if c.is_ascii() {
+                        temp_line.push(c);
+                        if c == '"' {
+                            state = TokenState::QuotedString;
+                        }
+                        j += 1;
+                        continue;
+                    }
+                }
+
+                // we never use this state when tokenising
+                TokenState::Function => (),
+
+                TokenState::RemarkOrData => {
+                    temp_line.push(c);
+
+                    j += 1;
+                    while !line.is_char_boundary(j) {
+                        j += 1;
+                    }
+                    continue;
+                }
+
+                TokenState::QuotedString => {
+                    temp_line.push(c);
+
+                    if c == '"' {
+                        state = TokenState::Statement;
+                    }
+
+                    j += 1;
+                    while !line.is_char_boundary(j) {
+                        j += 1;
+                    }
+                    continue;
+                }
+            }
+
+            // Just continue on
+            j += 1;
+        }
+
+        flush_line(&mut content_bytes, &mut temp_line, cset);
+
+        // Newline
+        content_bytes.push(0x0d);
+        content_bytes.shrink_to_fit();
+
+        Self {
+            lineno,
+            content_bytes,
+        }
+    }
+
+    /// Return the complete line as a vector of bytes
+    pub fn complete_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::<u8>::with_capacity(self.content_bytes.len() + 5);
+        bytes.push(self.content_bytes.len() as u8);
+
+        // Line number
+        bytes.push((self.lineno & 0xff) as u8);
+        bytes.push((self.lineno >> 8) as u8);
+
+        // two unknown bytes
+        bytes.push(0x00);
+        bytes.push(0x00);
+
+        bytes.extend(self.content_bytes.clone());
+
+        bytes
+    }
+
+    /// Detokenise this line of BASIC source code into a Unicode string
+    pub fn detokenise(&self, bver: SegaBasicVersion, cset: CharacterSet) -> String {
+        let mut temp_bytes = vec![];
+
+        let mut output = String::with_capacity(self.content_bytes.len() * 5);
+        // Print the line number
+        output.push_str(&self.lineno.to_string());
+        output.push(' ');
+
+        let mut state = TokenState::Statement;
+        let mut j = 0;
+        while j < self.content_bytes.len() {
+            let b = self.content_bytes[j];
+            match state {
+                TokenState::Statement => {
+                    // Ordinary ASCII character
+                    if b < 128 {
+                        temp_bytes.push(b);
+                        if b == b'"' {
+                            state = TokenState::QuotedString;
+                        }
+
+                        j += 1;
+                        continue;
+                    }
+
+                    if b == 0x80 {
+                        state = TokenState::Function;
+                        j += 1;
+                        continue;
+                    }
+
+                    if let Some(stmtname) = STATEMENTS[bver as usize].get(&b) {
+                        flush_bytes(&mut output, &mut temp_bytes, cset);
+                        output.push_str(stmtname);
+
+                        // REM
+                        if b == 0x90 || b == 0x93 {
+                            state = TokenState::RemarkOrData;
+                        }
+
+                        j += 1;
+                        continue;
+                    }
+                }
+
+                TokenState::Function => {
+                    // Ordinary ASCII character
+                    if b < 128 {
+                        temp_bytes.push(b);
+                        if b == b':' {
+                            state = TokenState::Statement;
+                        } else if b == b'"' {
+                            state = TokenState::QuotedString;
+                        }
+
+                        j += 1;
+                        continue;
+                    }
+
+                    if let Some(funcname) = FUNCS[bver as usize].get(&b) {
+                        flush_bytes(&mut output, &mut temp_bytes, cset);
+                        output.push_str(funcname);
+
+                        state = TokenState::Statement;
+                        j += 1;
+                        continue;
+                    }
+                }
+
+                TokenState::RemarkOrData => {
+                    // Any 8-bit character
+                    temp_bytes.push(b);
+
+                    j += 1;
+                    continue;
+                }
+
+                TokenState::QuotedString => {
+                    // Any 8-bit character
+                    temp_bytes.push(b);
+
+                    // End the quoted string
+                    if b == b'"' {
+                        state = TokenState::Statement;
+                    }
+
+                    j += 1;
+                    continue;
+                }
+            }
+
+            // ?
+            j += 1;
+        }
+
+        flush_bytes(&mut output, &mut temp_bytes, cset);
+        output.shrink_to_fit();
+
+        output
+    }
+}
+
 lazy_static! {
     static ref STATEMENTS: [ HashMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
@@ -224,289 +579,12 @@ fn flush_bytes(output: &mut String, temp_bytes: &mut Vec<u8>, cset: CharacterSet
     temp_bytes.clear();
 }
 
-/// Detokenise a byte slice of data holding a line of BASIC source code into a Unicode string
-pub fn detokenise_line(
-    output: &mut String,
-    line: &[u8],
-    bver: SegaBasicVersion,
-    cset: CharacterSet,
-) {
-    let mut temp_bytes = vec![];
-
-    // We don't use the content length in the first byte
-
-    // Next two bytes are the line number
-    let lineno = (line[1] as u16) | ((line[2] as u16) << 8);
-
-    // Next two bytes?
-
-    // Print the line number
-    output.push_str(&lineno.to_string());
-    output.push(' ');
-
-    let mut state = TokenState::Statement;
-    let mut j = 5;
-    while j < line.len() {
-        let b = line[j];
-        match state {
-            TokenState::Statement => {
-                // Ordinary ASCII character
-                if b < 128 {
-                    temp_bytes.push(b);
-                    if b == b'"' {
-                        state = TokenState::QuotedString;
-                    }
-
-                    j += 1;
-                    continue;
-                }
-
-                if b == 0x80 {
-                    state = TokenState::Function;
-                    j += 1;
-                    continue;
-                }
-
-                if let Some(stmtname) = STATEMENTS[bver as usize].get(&b) {
-                    flush_bytes(output, &mut temp_bytes, cset);
-                    output.push_str(stmtname);
-
-                    // REM
-                    if b == 0x90 || b == 0x93 {
-                        state = TokenState::RemarkOrData;
-                    }
-
-                    j += 1;
-                    continue;
-                }
-            }
-
-            TokenState::Function => {
-                // Ordinary ASCII character
-                if b < 128 {
-                    temp_bytes.push(b);
-                    if b == b':' {
-                        state = TokenState::Statement;
-                    } else if b == b'"' {
-                        state = TokenState::QuotedString;
-                    }
-
-                    j += 1;
-                    continue;
-                }
-
-                if let Some(funcname) = FUNCS[bver as usize].get(&b) {
-                    flush_bytes(output, &mut temp_bytes, cset);
-                    output.push_str(funcname);
-
-                    state = TokenState::Statement;
-                    j += 1;
-                    continue;
-                }
-            }
-
-            TokenState::RemarkOrData => {
-                // Any 8-bit character
-                temp_bytes.push(b);
-
-                j += 1;
-                continue;
-            }
-
-            TokenState::QuotedString => {
-                // Any 8-bit character
-                temp_bytes.push(b);
-
-                // End the quoted string
-                if b == b'"' {
-                    state = TokenState::Statement;
-                }
-
-                j += 1;
-                continue;
-            }
-        }
-
-        // ?
-        j += 1;
-    }
-
-    flush_bytes(output, &mut temp_bytes, cset);
-}
-
-/// Detokenise a byte slice of data holding BASIC source code into a Unicode string
-pub fn detokenise(sc3kstr: &SC3000String, bver: SegaBasicVersion) -> String {
-    let mut output = String::with_capacity(sc3kstr.len() * 10);
-
-    let mut i = 0;
-    while i < sc3kstr.len() {
-        // First byte is the content length
-        let content_length = sc3kstr.bytes[i] as usize;
-        if content_length == 0 {
-            break;
-        }
-
-        // Detokenise the contents
-        detokenise_line(
-            &mut output,
-            &sc3kstr.bytes[i..i + 5 + content_length],
-            bver,
-            sc3kstr.cset,
-        );
-        i += 5 + content_length;
-
-        output.push('\x0a');
-        i += 1;
-    }
-
-    output.shrink_to_fit();
-    output
-}
-
 fn flush_line(bytes: &mut Vec<u8>, temp_line: &mut String, cset: CharacterSet) {
     if temp_line.is_empty() {
         return;
     }
 
     //eprintln!("Adding line \"{}\" to bytes", temp_line);
-    bytes.extend(SC3000String::from_string(&temp_line, cset).bytes);
+    bytes.extend(SC3000String::from_string(temp_line, cset).bytes);
     temp_line.clear();
-}
-
-/// Tokenise a line of Unicode text into bytes for use in an SC-3000 BASIC file
-pub fn tokenise_line(
-    line: &str,
-    bver: SegaBasicVersion,
-    cset: CharacterSet,
-) -> Option<SC3000String> {
-    let mut bytes = Vec::<u8>::with_capacity(line.len() / 10);
-    bytes.push(0x00); // placeholder - replace with line length later
-
-    let space_i = line.find(' ')?;
-    let lineno = line[0..space_i].parse::<u16>().ok()?;
-    bytes.push((lineno & 0xff) as u8);
-    bytes.push((lineno >> 8) as u8);
-
-    // two unknown bytes
-    bytes.push(0x00);
-    bytes.push(0x00);
-
-    let mut temp_line = String::new();
-
-    let mut state = TokenState::Statement;
-    let mut j = space_i + 1;
-    while j < line.len() {
-        let c = line[j..].chars().next()?;
-
-        match state {
-            TokenState::Statement => {
-                if let Some(num) = ALIASES
-                    .iter()
-                    .position(|alias| line[j..].starts_with((*alias).0))
-                {
-                    flush_line(&mut bytes, &mut temp_line, cset);
-                    bytes.push(ALIASES[num].1);
-
-                    j += ALIASES[num].0.len();
-                    continue;
-                }
-
-                if let Some((&stmt_code, &statement)) = (&STATEMENTS[bver as usize])
-                    .iter()
-                    .filter(|&(_, v)| line[j..].starts_with(v))
-                    .max_by_key(|&(_, v)| v.len())
-                {
-                    flush_line(&mut bytes, &mut temp_line, cset);
-                    bytes.push(stmt_code);
-
-                    // REM
-                    if stmt_code == 0x90 || stmt_code == 0x93 {
-                        state = TokenState::RemarkOrData;
-                    }
-
-                    j += statement.len();
-                    continue;
-                }
-
-                if let Some((&func_code, &func_name)) = (&FUNCS[bver as usize])
-                    .iter()
-                    .filter(|&(_, v)| line[j..].starts_with(v))
-                    .max_by_key(|&(_, v)| v.len())
-                {
-                    flush_line(&mut bytes, &mut temp_line, cset);
-                    bytes.push(0x80);
-                    bytes.push(func_code);
-
-                    j += func_name.len();
-                    continue;
-                }
-
-                if c.is_ascii() {
-                    temp_line.push(c);
-                    if c == '"' {
-                        state = TokenState::QuotedString;
-                    }
-                    j += 1;
-                    continue;
-                }
-            }
-
-            // we never use this state when tokenising
-            TokenState::Function => (),
-
-            TokenState::RemarkOrData => {
-                temp_line.push(c);
-
-                j += 1;
-                while !line.is_char_boundary(j) {
-                    j += 1;
-                }
-                continue;
-            }
-
-            TokenState::QuotedString => {
-                temp_line.push(c);
-
-                if c == '"' {
-                    state = TokenState::Statement;
-                }
-
-                j += 1;
-                while !line.is_char_boundary(j) {
-                    j += 1;
-                }
-                continue;
-            }
-        }
-
-        // Just continue on
-        j += 1;
-    }
-
-    flush_line(&mut bytes, &mut temp_line, cset);
-
-    // replace the line length at the start of the line
-    bytes[0] = (bytes.len() - 5) as u8;
-
-    // Newline
-    bytes.push(0x0d);
-    bytes.shrink_to_fit();
-
-    Some(SC3000String {
-        cset,
-        bytes: bytes.into(),
-    })
-}
-
-/// Tokenise a Unicode string into bytes for use in an SC-3000 BASIC file
-pub fn tokenise(source: &str, bver: SegaBasicVersion, cset: CharacterSet) -> Option<SC3000String> {
-    let mut output = Vec::<u8>::with_capacity(source.len() / 10);
-
-    for line in source.lines() {
-        let s = tokenise_line(line, bver, cset).unwrap();
-        output.extend(&s.bytes);
-    }
-
-    output.shrink_to_fit();
-    Some(SC3000String::new(output.as_ref(), cset))
 }
