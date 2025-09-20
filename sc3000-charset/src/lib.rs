@@ -246,16 +246,18 @@ pub enum CharacterSet {
 impl CharacterSet {
     /// Try to guess the best character set of a unicode string
     pub fn guess(source: &str) -> Result<Self> {
-        let mut j_count = 0;
-        let mut e_count = 0;
-        for src_char in source.chars() {
+        let (j_count, e_count) = source.chars().fold((0, 0), |(j, e), src_char| (
             if JAPANESE_REVERSE_CHARMAP.contains_key(&src_char) {
-                j_count += 1;
-            }
+                j + 1
+            } else {
+                j
+            },
             if EXPORT_REVERSE_CHARMAP.contains_key(&src_char) {
-                e_count += 1;
-            }
-        }
+                e + 1
+            } else {
+                e
+            },
+        ));
 
         if (j_count == 0) && (e_count == 0) {
             Err(ConversionError::NonRepresentableCharacterFound)
