@@ -24,7 +24,7 @@ extern crate lazy_static;
 use std::collections::HashMap;
 
 // List of Japanese characters and their substitutions
-static JAPANESE_CHARLIST: [(u8, char); 215] = [
+static JAPANESE_CHARLIST: [(u8, char); 216] = [
     (0x0d, '\x0a'),
 
     (0x20, ' '), (0x21, '!'), (0x22, '"'), (0x23, '#'),
@@ -55,7 +55,7 @@ static JAPANESE_CHARLIST: [(u8, char); 215] = [
     (0x70, 'p'), (0x71, 'q'), (0x72, 'r'), (0x73, 's'),
     (0x74, 't'), (0x75, 'u'), (0x76, 'v'), (0x77, 'w'),
     (0x78, 'x'), (0x79, 'y'), (0x7a, 'z'), (0x7b, '{'),
-    (0x7c, '|'), (0x7d, '}'), (0x7e, '~'),
+    (0x7c, '|'), (0x7d, '}'), (0x7e, '~'), (0x7f, '\x7f'),
 
     (0x80, '\u{2502}'), (0x81, '\u{2500}'), (0x82, '\u{2534}'), (0x83, '\u{252c}'),
     (0x84, '\u{2524}'), (0x85, '\u{251c}'), (0x86, '\u{250c}'), (0x87, '\u{2514}'),
@@ -99,7 +99,7 @@ static JAPANESE_CHARLIST: [(u8, char); 215] = [
 ];
 
 // List of 'Export' characters and their substitutions
-static EXPORT_CHARLIST: [(u8, char); 188] = [
+static EXPORT_CHARLIST: [(u8, char); 189] = [
     (0x0d, '\x0a'),
 
     (0x20, ' '), (0x21, '!'), (0x22, '"'), (0x23, '#'),
@@ -130,7 +130,7 @@ static EXPORT_CHARLIST: [(u8, char); 188] = [
     (0x70, 'p'), (0x71, 'q'), (0x72, 'r'), (0x73, 's'),
     (0x74, 't'), (0x75, 'u'), (0x76, 'v'), (0x77, 'w'),
     (0x78, 'x'), (0x79, 'y'), (0x7a, 'z'), (0x7b, '{'),
-    (0x7c, '|'), (0x7d, '}'), (0x7e, '~'),
+    (0x7c, '|'), (0x7d, '}'), (0x7e, '~'), (0x7f, '\x7f'),
 
     (0x80, '\u{2502}'), (0x81, '\u{2500}'), (0x82, '\u{2534}'), (0x83, '\u{252c}'),
     (0x84, '\u{2524}'), (0x85, '\u{251c}'), (0x86, '\u{250c}'), (0x87, '\u{2514}'),
