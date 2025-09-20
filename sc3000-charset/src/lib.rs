@@ -16,7 +16,7 @@
   along with this library.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! Sega SC-3000 character map routines
+//! Sega SC-3000 character map conversion
 
 #[macro_use]
 extern crate lazy_static;
