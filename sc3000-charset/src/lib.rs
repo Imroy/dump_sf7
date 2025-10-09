@@ -182,7 +182,7 @@ pub enum ConversionError {
     BufferTooSmall,
 }
 
-pub type Result<T> = core::result::Result<T, ConversionError>;
+type Result<T> = core::result::Result<T, ConversionError>;
 
 /// The character sets that different models of the SC-3000 used
 ///
