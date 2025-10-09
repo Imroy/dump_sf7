@@ -203,7 +203,7 @@ fn main() -> std::io::Result<()> {
                     || (file.name.len() >= 4 && &file.name[file.name.len() - 4..] == ".BAS"))
             {
                 print!("\t[BASIC]");
-                let program = SegaBasicProgram::new(&contents, basic_ver, cset);
+                let program = SegaBasicProgram::from_bytes(&contents, basic_ver, cset);
                 outfile.write_all(program.detokenise().as_bytes())?;
             } else {
                 print!("\t[Raw]");

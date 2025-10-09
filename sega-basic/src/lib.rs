@@ -108,8 +108,16 @@ pub struct SegaBasicProgram {
 }
 
 impl SegaBasicProgram {
-    /// Constructor from a slice of bytes
-    pub fn new(bytes: &[u8], bver: SegaBasicVersion, cset: CharacterSet) -> Self {
+    pub fn new(bver: SegaBasicVersion, cset: CharacterSet) -> Self {
+        Self {
+            lines: Vec::new(),
+            bver,
+            cset,
+        }
+    }
+
+    /// Constructor from a slice of raw bytes
+    pub fn from_bytes(bytes: &[u8], bver: SegaBasicVersion, cset: CharacterSet) -> Self {
         let mut lines = Vec::new();
 
         let mut i = 0;
