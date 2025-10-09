@@ -23,6 +23,8 @@ extern crate lazy_static;
 
 use std::collections::HashMap;
 
+use unicode_normalization::UnicodeNormalization;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConversionError {
     NonRepresentableCharacterFound,
@@ -93,18 +95,25 @@ pub enum CharacterSet {
 impl CharacterSet {
     /// Try to guess the best character set of a unicode string
     pub fn guess(source: &str) -> Result<Self> {
-        let (j_count, e_count) = source.chars().fold((0, 0), |(j, e), src_char| (
-            if JAPANESE_REVERSE_CHARMAP.contains_key(&src_char) {
-                j + 1
-            } else {
-                j
-            },
-            if EXPORT_REVERSE_CHARMAP.contains_key(&src_char) {
-                e + 1
-            } else {
-                e
-            },
-        ));
+        let (j_count, e_count) =
+            source
+                .nfc()
+                .collect::<String>()
+                .chars()
+                .fold((0, 0), |(j, e), src_char| {
+                    (
+                        if JAPANESE_REVERSE_CHARMAP.contains_key(&src_char) {
+                            j + 1
+                        } else {
+                            j
+                        },
+                        if EXPORT_REVERSE_CHARMAP.contains_key(&src_char) {
+                            e + 1
+                        } else {
+                            e
+                        },
+                    )
+                });
 
         if (j_count == 0) && (e_count == 0) {
             Err(ConversionError::NonRepresentableCharacterFound)
@@ -158,6 +167,7 @@ impl SC3000String {
 
     /// Constructor from a Unicode string and a [CharacterSet]
     pub fn from_string(source: &str, cset: CharacterSet) -> Self {
+        let source = source.nfc().collect::<String>();
         let mut bytes: Vec<u8> = Vec::with_capacity(source.len());
 
         let mut i = 0;
