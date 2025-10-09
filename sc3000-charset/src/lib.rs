@@ -195,6 +195,9 @@ impl SC3000String {
 
             // TODO: what to do with unmapped characters?
             i += 1;
+            while !source.is_char_boundary(i) && i < source.len() {
+                i += 1;
+            }
         }
 
         bytes.shrink_to_fit();
