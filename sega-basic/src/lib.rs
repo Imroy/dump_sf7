@@ -39,7 +39,7 @@
 #[macro_use]
 extern crate lazy_static;
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use sc3000_charset::{CharacterSet, SC3000String};
 
@@ -252,50 +252,53 @@ impl SegaBasicLine {
         let mut temp_line = String::new();
 
         let mut state = TokenState::default();
-        while j < line.len() {
+        'character: while j < line.len() {
             let c = line[j..].chars().next().unwrap();
 
             match state {
                 TokenState::Statement => {
-                    if let Some(num) = ALIASES
-                        .iter()
-                        .position(|alias| line[j..].starts_with(alias.0))
-                    {
-                        flush_line(&mut content_bytes, &mut temp_line, cset);
-                        content_bytes.push(ALIASES[num].1);
+                    for length in ALIAS_LENGTHS.iter().rev() {
+                        if j + length < line.len()
+                            && let Some(code) = ALIASES.get(&line[j..j + length])
+                        {
+                            flush_line(&mut content_bytes, &mut temp_line, cset);
+                            content_bytes.push(*code);
 
-                        j += ALIASES[num].0.len();
-                        continue;
-                    }
-
-                    if let Some((&stmt_code, &statement)) = STATEMENTS[bver as usize]
-                        .iter()
-                        .filter(|&(_, v)| line[j..].starts_with(v))
-                        .max_by_key(|&(_, v)| v.len())
-                    {
-                        flush_line(&mut content_bytes, &mut temp_line, cset);
-                        content_bytes.push(stmt_code);
-
-                        // REM
-                        if stmt_code == 0x90 || stmt_code == 0x93 {
-                            state = TokenState::RemarkOrData;
+                            j += length;
+                            continue 'character;
                         }
-
-                        j += statement.len();
-                        continue;
                     }
 
-                    if let Some((&func_code, &func_name)) = FUNCS[bver as usize]
-                        .iter()
-                        .filter(|&(_, v)| line[j..].starts_with(v))
-                        .max_by_key(|&(_, v)| v.len())
-                    {
-                        flush_line(&mut content_bytes, &mut temp_line, cset);
-                        content_bytes.push(0x80);
-                        content_bytes.push(func_code);
+                    for length in STATEMENT_LENGTHS[bver as usize].iter().rev() {
+                        if j + length < line.len()
+                            && let Some(stmt_code) =
+                                STATEMENT_CODES[bver as usize].get(&line[j..j + length])
+                        {
+                            flush_line(&mut content_bytes, &mut temp_line, cset);
+                            content_bytes.push(*stmt_code);
 
-                        j += func_name.len();
-                        continue;
+                            // REM or DATA
+                            if *stmt_code == 0x90 || *stmt_code == 0x93 {
+                                state = TokenState::RemarkOrData;
+                            }
+
+                            j += length;
+                            continue 'character;
+                        }
+                    }
+
+                    for length in FUNC_LENGTHS[bver as usize].iter().rev() {
+                        if j + length < line.len()
+                            && let Some(func_code) =
+                                FUNC_CODES[bver as usize].get(&line[j..j + length])
+                        {
+                            flush_line(&mut content_bytes, &mut temp_line, cset);
+                            content_bytes.push(0x80);
+                            content_bytes.push(*func_code);
+
+                            j += length;
+                            continue 'character;
+                        }
                     }
 
                     if c.is_ascii() {
@@ -304,7 +307,7 @@ impl SegaBasicLine {
                             state = TokenState::QuotedString;
                         }
                         j += 1;
-                        continue;
+                        continue 'character;
                     }
                 }
 
@@ -318,7 +321,7 @@ impl SegaBasicLine {
                     while !line.is_char_boundary(j) {
                         j += 1;
                     }
-                    continue;
+                    continue 'character;
                 }
 
                 TokenState::QuotedString => {
@@ -332,7 +335,7 @@ impl SegaBasicLine {
                     while !line.is_char_boundary(j) {
                         j += 1;
                     }
-                    continue;
+                    continue 'character;
                 }
             }
 
@@ -375,9 +378,9 @@ impl SegaBasicLine {
 
     /// Detokenise this line of BASIC source code into a Unicode string
     pub fn detokenise(&self, bver: SegaBasicVersion, cset: CharacterSet) -> String {
-        let mut temp_bytes = vec![];
-
+        let mut temp_bytes = Vec::new();
         let mut output = String::with_capacity(self.content_bytes.len() * 5);
+
         // Print the line number
         output.push_str(&self.lineno.to_string());
         output.push(' ');
@@ -591,6 +594,32 @@ lazy_static! {
         // Disk BASIC v1.0p or v1.1p
         HashMap::from(STATEMENTS_DISK),
     ];
+    static ref STATEMENT_LENGTHS: [ Vec<usize>; 2 ] = [
+        STATEMENTS_CARTRIDGE
+            .iter()
+            .map(|(_, v)| v.len())
+            .collect::<BTreeSet<usize>>()
+            .iter()
+            .copied()
+            .collect(),
+        STATEMENTS_DISK
+            .iter()
+            .map(|(_, v)| v.len())
+            .collect::<BTreeSet<usize>>()
+            .iter()
+            .copied()
+            .collect(),
+    ];
+    static ref STATEMENT_CODES: [ HashMap<&'static str, u8>; 2 ] = [
+        STATEMENTS_CARTRIDGE
+            .iter()
+            .map(|(k, v)| (*v, *k))
+            .collect(),
+        STATEMENTS_DISK
+            .iter()
+            .map(|(k, v)| (*v, *k))
+            .collect(),
+    ];
 
     static ref FUNCS: [ HashMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
@@ -598,6 +627,32 @@ lazy_static! {
 
         // Disk BASIC v1.0p or v1.1p
         HashMap::from(FUNCS_DISK),
+    ];
+    static ref FUNC_LENGTHS: [ Vec<usize>; 2 ] = [
+        FUNCS_CARTRIDGE
+            .iter()
+            .map(|(_, v)| v.len())
+            .collect::<BTreeSet<usize>>()
+            .iter()
+            .copied()
+            .collect(),
+        FUNCS_DISK
+            .iter()
+            .map(|(_, v)| v.len())
+            .collect::<BTreeSet<usize>>()
+            .iter()
+            .copied()
+            .collect(),
+    ];
+    static ref FUNC_CODES: [ HashMap<&'static str, u8>; 2 ] = [
+        FUNCS_CARTRIDGE
+            .iter()
+            .map(|(k, v)| (*v, *k))
+            .collect(),
+        FUNCS_DISK
+            .iter()
+            .map(|(k, v)| (*v, *k))
+            .collect(),
     ];
 }
 
