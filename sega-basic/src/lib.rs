@@ -39,7 +39,7 @@
 #[macro_use]
 extern crate lazy_static;
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use sc3000_charset::{CharacterSet, SC3000String};
 
@@ -587,12 +587,12 @@ lazy_static! {
         .copied()
         .collect::<Vec<usize>>();
 
-    static ref STATEMENTS: [ HashMap<u8, &'static str>; 2 ] = [
+    static ref STATEMENTS: [ BTreeMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
-        HashMap::from(STATEMENTS_CARTRIDGE),
+        BTreeMap::from(STATEMENTS_CARTRIDGE),
 
         // Disk BASIC v1.0p or v1.1p
-        HashMap::from(STATEMENTS_DISK),
+        BTreeMap::from(STATEMENTS_DISK),
     ];
     static ref STATEMENT_LENGTHS: [ Vec<usize>; 2 ] = [
         STATEMENTS_CARTRIDGE
@@ -621,12 +621,12 @@ lazy_static! {
             .collect(),
     ];
 
-    static ref FUNCS: [ HashMap<u8, &'static str>; 2 ] = [
+    static ref FUNCS: [ BTreeMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
-        HashMap::from(FUNCS_CARTRIDGE),
+        BTreeMap::from(FUNCS_CARTRIDGE),
 
         // Disk BASIC v1.0p or v1.1p
-        HashMap::from(FUNCS_DISK),
+        BTreeMap::from(FUNCS_DISK),
     ];
     static ref FUNC_LENGTHS: [ Vec<usize>; 2 ] = [
         FUNCS_CARTRIDGE
