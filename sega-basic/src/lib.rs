@@ -476,6 +476,15 @@ impl SegaBasicLine {
     }
 }
 
+/// States of the tokeniser/detokeniser
+#[derive(Copy, Clone, Debug)]
+enum TokenState {
+    Statement,
+    Function,
+    RemarkOrData,
+    QuotedString,
+}
+
 lazy_static! {
     static ref STATEMENTS: [ HashMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
@@ -587,14 +596,6 @@ lazy_static! {
             ( 0xa4, "RIGHT$" ), ( 0xa5, "MID$" ), ( 0xa6, "STR$" ), ( 0xa7, "TIME$" ),
         ]),
     ];
-}
-
-#[derive(Copy, Clone, Debug)]
-enum TokenState {
-    Statement,
-    Function,
-    RemarkOrData,
-    QuotedString,
 }
 
 fn flush_bytes(output: &mut String, temp_bytes: &mut Vec<u8>, cset: CharacterSet) {
