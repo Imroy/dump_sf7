@@ -251,7 +251,7 @@ impl SegaBasicLine {
         let mut content_bytes = Vec::<u8>::with_capacity(line.len() / 5);
         let mut temp_line = String::new();
 
-        let mut state = TokenState::Statement;
+        let mut state = TokenState::default();
         while j < line.len() {
             let c = line[j..].chars().next().unwrap();
 
@@ -382,7 +382,7 @@ impl SegaBasicLine {
         output.push_str(&self.lineno.to_string());
         output.push(' ');
 
-        let mut state = TokenState::Statement;
+        let mut state = TokenState::default();
         let mut j = 0;
         while j < self.content_bytes.len() {
             let b = self.content_bytes[j];
@@ -477,8 +477,9 @@ impl SegaBasicLine {
 }
 
 /// States of the tokeniser/detokeniser
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 enum TokenState {
+    #[default]
     Statement,
     Function,
     RemarkOrData,
