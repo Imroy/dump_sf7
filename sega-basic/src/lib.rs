@@ -486,116 +486,118 @@ enum TokenState {
     QuotedString,
 }
 
+static ALIAS_LIST: [(&str, u8); 5] = [
+    ("?", 0x91), ("L?", 0x92),
+    ("><", 0xc6), ("=>", 0xc7),
+    ("=<", 0xc8),
+];
+
+static STATEMENTS_CARTRIDGE: [(u8, &str); 78] = [
+    (0x82, "LIST"), (0x83, "LLIST"),
+    (0x84, "AUTO"), (0x85, "DELETE"), (0x86, "RUN"), (0x87, "CONT"),
+    (0x88, "LOAD"), (0x89, "SAVE"), (0x8a, "VERIFY"), (0x8b, "NEW"),
+    (0x8c, "RENUM"),
+    (0x90, "REM"), (0x91, "PRINT"), (0x92, "LPRINT"), (0x93, "DATA"),
+    (0x94, "DEF"), (0x95, "INPUT"), (0x96, "READ"), (0x97, "STOP"),
+    (0x98, "END"), (0x99, "LET"), (0x9a, "DIM"), (0x9b, "FOR"),
+    (0x9c, "NEXT"), (0x9d, "GOTO"), (0x9e, "GOSUB"), (0x9f, "GO"),
+    (0xa0, "ON"), (0xa1, "RETURN"), (0xa2, "ERASE"), (0xa3, "CURSOR"),
+    (0xa4, "IF"), (0xa5, "RESTORE"), (0xa6, "SCREEN"), (0xa7, "COLOR"),
+    (0xa8, "LINE"), (0xa9, "SOUND"), (0xaa, "BEEP"), (0xab, "CONSOLE"),
+    (0xac, "CLS"), (0xad, "OUT"), (0xae, "CALL"), (0xaf, "POKE"),
+    (0xb0, "PSET"), (0xb1, "PRESET"), (0xb2, "PAINT"), (0xb3, "BLINE"),
+    (0xb4, "POSITION"), (0xb5, "HCOPY"), (0xb6, "SPRITE"), (0xb7, "PATTERN"),
+    (0xb8, "CIRCLE"), (0xb9, "BCIRCLE"), (0xba, "MAG"), (0xbb, "VPOKE"),
+    (0xbc, "MOTOR"),
+    (0xc0, "^"), (0xc1, "*"), (0xc2, "/"), (0xc3, "MOD"),
+    (0xc4, "+"), (0xc5, "-"), (0xc6, "<>"), (0xc7, ">="),
+    (0xc8, "<="), (0xc9, ">"), (0xca, "<"), (0xcb, "="),
+    (0xcc, "NOT"), (0xcd, "AND"), (0xce, "OR"), (0xcf, "XOR"),
+    (0xe0, "FN"), (0xe1, "TO"), (0xe2, "STEP"), (0xe3, "THEN"),
+    (0xe4, "TAB"), (0xe5, "SPC"),
+];
+
+static STATEMENTS_DISK: [(u8, &str); 107] = [
+    (0x81, "INPUT$"), (0x82, "LIST"), (0x83, "LLIST"),
+    (0x84, "AUTO"), (0x85, "DELETE"), (0x86, "RUN"), (0x87, "CONT"),
+    (0x88, "CLOAD"), (0x89, "CSAVE"), (0x8a, "VERIFY"), (0x8b, "NEW"),
+    (0x8c, "RENUM"), (0x8d, "FILES"), (0x8e, "LFILES"), (0x8f, "BOOT"),
+    (0x90, "REM"), (0x91, "PRINT"), (0x92, "LPRINT"), (0x93, "DATA"),
+    (0x94, "DEF"), (0x95, "INPUT"), (0x96, "READ"), (0x97, "STOP"),
+    (0x98, "END"), (0x99, "LET"), (0x9a, "DIM"), (0x9b, "FOR"),
+    (0x9c, "NEXT"), (0x9d, "GOTO"), (0x9e, "GOSUB"), (0x9f, "GO"),
+    (0xa0, "ON"), (0xa1, "RETURN"), (0xa2, "ERASE"), (0xa3, "CURSOR"),
+    (0xa4, "IF"), (0xa5, "RESTORE"), (0xa6, "SCREEN"), (0xa7, "COLOR"),
+    (0xa8, "LINE"), (0xa9, "SOUND"), (0xaa, "BEEP"), (0xab, "CONSOLE"),
+    (0xac, "CLS"), (0xad, "OUT"), (0xae, "CALL"), (0xaf, "POKE"),
+    (0xb0, "PSET"), (0xb1, "PRESET"), (0xb2, "PAINT"), (0xb3, "BLINE"),
+    (0xb4, "POSITION"), (0xb5, "HCOPY"), (0xb6, "SPRITE"), (0xb7, "PATTERN"),
+    (0xb8, "CIRCLE"), (0xb9, "BCIRCLE"), (0xba, "MAG"), (0xbb, "VPOKE"),
+    (0xbc, "MOTOR"), (0xbd, "OPEN"), (0xbe, "CLOSE"), (0xbf, "COMSET"),
+    (0xc0, "^"), (0xc1, "*"), (0xc2, "/"), (0xc3, "MOD"),
+    (0xc4, "+"), (0xc5, "-"), (0xc6, "<>"), (0xc7, ">="),
+    (0xc8, "<="), (0xc9, ">"), (0xca, "<"), (0xcb, "="),
+    (0xcc, "NOT"), (0xcd, "AND"), (0xce, "OR"), (0xcf, "XOR"),
+    (0xd0, "CLOADM"), (0xd1, "CSAVEM"), (0xd2, "VERIFYM"), (0xd3, "SAVEM"),
+    (0xd4, "LOADM"), (0xd5, "LIMIT"), (0xd6, "GET"), (0xd7, "PUT"),
+    (0xd8, "DSKI$"), (0xd9, "DSKO$"), (0xda, "KILL"), (0xdb, "SET"),
+    (0xdc, "NAME"),
+    (0xe0, "FN"), (0xe1, "TO"), (0xe2, "STEP"), (0xe3, "THEN"),
+    (0xe4, "TAB"), (0xe5, "SPC"), (0xe6, "APPEND"), (0xe7, "OUTPUT"),
+    (0xf0, "SAVE"), (0xf1, "LOAD"),
+    (0xf5, "MERGE"), (0xf6, "COMSAVE"), (0xf7, "COMLOAD"),
+    (0xf8, "UTILITY"), (0xf9, "MAXFILE"),
+];
+
+static FUNCS_CARTRIDGE: [(u8, &str); 35] = [
+    (0x80, "ABS"), (0x81, "RND"), (0x82, "SIN"), (0x83, "COS"),
+    (0x84, "TAN"), (0x85, "ASN"), (0x86, "ACS"), (0x87, "ATN"),
+    (0x88, "LOG"), (0x89, "LGT"), (0x8a, "LTW"), (0x8b, "EXP"),
+    (0x8c, "RAD"), (0x8d, "DEG"), (0x8e, "PI"), (0x8f, "SQR"),
+    (0x90, "INT"), (0x91, "SGN"), (0x92, "ASC"), (0x93, "LEN"),
+    (0x94, "VAL"), (0x95, "PEEK"), (0x96, "INP"), (0x97, "FRE"),
+    (0x98, "VPEEK"), (0x99, "STICK"), (0x9a, "STRIG"),
+    (0xa0, "CHR$"), (0xa1, "HEX$"), (0xa2, "INKEY$"), (0xa3, "LEFT$"),
+    (0xa4, "RIGHT$"), (0xa5, "MID$"), (0xa6, "STR$"), (0xa7, "TIME$"),
+];
+
+static FUNCS_DISK: [(u8, &str); 39] = [
+    (0x80, "ABS"), (0x81, "RND"), (0x82, "SIN"), (0x83, "COS"),
+    (0x84, "TAN"), (0x85, "ASN"), (0x86, "ACS"), (0x87, "ATN"),
+    (0x88, "LOG"), (0x89, "LGT"), (0x8a, "LTW"), (0x8b, "EXP"),
+    (0x8c, "RAD"), (0x8d, "DEG"), (0x8e, "PI"), (0x8f, "SQR"),
+    (0x90, "INT"), (0x91, "SGN"), (0x92, "ASC"), (0x93, "LEN"),
+    (0x94, "VAL"), (0x95, "PEEK"), (0x96, "INP"), (0x97, "FRE"),
+    (0x98, "VPEEK"), (0x99, "STICK"), (0x9a, "STRIG"), (0x9b, "EOF"),
+    (0x9c, "LOC"), (0x9d, "LOF"), (0x9e, "DSKF"),
+    (0xa0, "CHR$"), (0xa1, "HEX$"), (0xa2, "INKEY$"), (0xa3, "LEFT$"),
+    (0xa4, "RIGHT$"), (0xa5, "MID$"), (0xa6, "STR$"), (0xa7, "TIME$"),
+];
+
 lazy_static! {
+    static ref ALIASES: HashMap<&'static str, u8> = HashMap::from(ALIAS_LIST);
+    static ref ALIAS_LENGTHS: Vec<usize> = ALIAS_LIST
+        .iter()
+        .map(|(k, _)| k.len())
+        .collect::<BTreeSet<usize>>()
+        .iter()
+        .copied()
+        .collect::<Vec<usize>>();
+
     static ref STATEMENTS: [ HashMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
-        HashMap::from([
-            ( 0x82, "LIST" ),  ( 0x83, "LLIST" ),
-            ( 0x84, "AUTO" ), ( 0x85, "DELETE" ), ( 0x86, "RUN" ), ( 0x87, "CONT" ),
-            ( 0x88, "LOAD" ), ( 0x89, "SAVE" ), ( 0x8a, "VERIFY" ), ( 0x8b, "NEW" ),
-            ( 0x8c, "RENUM" ),
-
-            ( 0x90, "REM" ), ( 0x91, "PRINT" ), ( 0x92, "LPRINT" ), ( 0x93, "DATA" ),
-            ( 0x94, "DEF" ), ( 0x95, "INPUT" ), ( 0x96, "READ" ), ( 0x97, "STOP" ),
-            ( 0x98, "END" ), ( 0x99, "LET" ), ( 0x9a, "DIM" ), ( 0x9b, "FOR" ),
-            ( 0x9c, "NEXT" ), ( 0x9d, "GOTO" ), ( 0x9e, "GOSUB" ), ( 0x9f, "GO" ),
-
-            ( 0xa0, "ON" ), ( 0xa1, "RETURN" ), ( 0xa2, "ERASE" ), ( 0xa3, "CURSOR" ),
-            ( 0xa4, "IF" ), ( 0xa5, "RESTORE" ), ( 0xa6, "SCREEN" ), ( 0xa7, "COLOR" ),
-            ( 0xa8, "LINE" ), ( 0xa9, "SOUND" ), ( 0xaa, "BEEP" ), ( 0xab, "CONSOLE" ),
-            ( 0xac, "CLS" ), ( 0xad, "OUT" ), ( 0xae, "CALL" ), ( 0xaf, "POKE" ),
-
-            ( 0xb0, "PSET" ), ( 0xb1, "PRESET" ), ( 0xb2, "PAINT" ), ( 0xb3, "BLINE" ),
-            ( 0xb4, "POSITION" ), ( 0xb5, "HCOPY" ), ( 0xb6, "SPRITE" ), ( 0xb7, "PATTERN" ),
-            ( 0xb8, "CIRCLE" ), ( 0xb9, "BCIRCLE" ), ( 0xba, "MAG" ), ( 0xbb, "VPOKE" ),
-            ( 0xbc, "MOTOR" ),
-
-            ( 0xc0, "^" ), ( 0xc1, "*" ), ( 0xc2, "/" ), ( 0xc3, "MOD" ),
-            ( 0xc4, "+" ), ( 0xc5, "-" ), ( 0xc6, "<>" ), ( 0xc7, ">=" ),
-            ( 0xc8, "<=" ), ( 0xc9, ">" ), ( 0xca, "<" ), ( 0xcb, "=" ),
-            ( 0xcc, "NOT" ), ( 0xcd, "AND" ), ( 0xce, "OR" ), ( 0xcf, "XOR" ),
-
-            ( 0xe0, "FN" ), ( 0xe1, "TO" ), ( 0xe2, "STEP" ), ( 0xe3, "THEN" ),
-            ( 0xe4, "TAB" ), ( 0xe5, "SPC" ),
-        ]),
+        HashMap::from(STATEMENTS_CARTRIDGE),
 
         // Disk BASIC v1.0p or v1.1p
-        HashMap::from([
-            ( 0x81, "INPUT$" ), ( 0x82, "LIST" ), ( 0x83, "LLIST" ),
-            ( 0x84, "AUTO" ), ( 0x85, "DELETE" ), ( 0x86, "RUN" ), ( 0x87, "CONT" ),
-            ( 0x88, "CLOAD" ), ( 0x89, "CSAVE" ), ( 0x8a, "VERIFY" ), ( 0x8b, "NEW" ),
-            ( 0x8c, "RENUM" ), ( 0x8d, "FILES" ), ( 0x8e, "LFILES" ), ( 0x8f, "BOOT" ),
-
-            ( 0x90, "REM" ), ( 0x91, "PRINT" ), ( 0x92, "LPRINT" ), ( 0x93, "DATA" ),
-            ( 0x94, "DEF" ), ( 0x95, "INPUT" ), ( 0x96, "READ" ), ( 0x97, "STOP" ),
-            ( 0x98, "END" ), ( 0x99, "LET" ), ( 0x9a, "DIM" ), ( 0x9b, "FOR" ),
-            ( 0x9c, "NEXT" ), ( 0x9d, "GOTO" ), ( 0x9e, "GOSUB" ), ( 0x9f, "GO" ),
-
-            ( 0xa0, "ON" ), ( 0xa1, "RETURN" ), ( 0xa2, "ERASE" ), ( 0xa3, "CURSOR" ),
-            ( 0xa4, "IF" ), ( 0xa5, "RESTORE" ), ( 0xa6, "SCREEN" ), ( 0xa7, "COLOR" ),
-            ( 0xa8, "LINE" ), ( 0xa9, "SOUND" ), ( 0xaa, "BEEP" ), ( 0xab, "CONSOLE" ),
-            ( 0xac, "CLS" ), ( 0xad, "OUT" ), ( 0xae, "CALL" ), ( 0xaf, "POKE" ),
-
-            ( 0xb0, "PSET" ), ( 0xb1, "PRESET" ), ( 0xb2, "PAINT" ), ( 0xb3, "BLINE" ),
-            ( 0xb4, "POSITION" ), ( 0xb5, "HCOPY" ), ( 0xb6, "SPRITE" ), ( 0xb7, "PATTERN" ),
-            ( 0xb8, "CIRCLE" ), ( 0xb9, "BCIRCLE" ), ( 0xba, "MAG" ), ( 0xbb, "VPOKE" ),
-            ( 0xbc, "MOTOR" ), ( 0xbd, "OPEN" ), ( 0xbe, "CLOSE" ), ( 0xbf, "COMSET" ),
-
-            ( 0xc0, "^" ), ( 0xc1, "*" ), ( 0xc2, "/" ), ( 0xc3, "MOD" ),
-            ( 0xc4, "+" ), ( 0xc5, "-" ), ( 0xc6, "<>" ), ( 0xc7, ">=" ),
-            ( 0xc8, "<=" ), ( 0xc9, ">" ), ( 0xca, "<" ), ( 0xcb, "=" ),
-            ( 0xcc, "NOT" ), ( 0xcd, "AND" ), ( 0xce, "OR" ), ( 0xcf, "XOR" ),
-
-            ( 0xd0, "CLOADM" ), ( 0xd1, "CSAVEM" ), ( 0xd2, "VERIFYM" ), ( 0xd3, "SAVEM" ),
-            ( 0xd4, "LOADM" ), ( 0xd5, "LIMIT" ), ( 0xd6, "GET" ), ( 0xd7, "PUT" ),
-            ( 0xd8, "DSKI$" ), ( 0xd9, "DSKO$" ), ( 0xda, "KILL" ), ( 0xdb, "SET" ),
-            ( 0xdc, "NAME" ),
-
-            ( 0xe0, "FN" ), ( 0xe1, "TO" ), ( 0xe2, "STEP" ), ( 0xe3, "THEN" ),
-            ( 0xe4, "TAB" ), ( 0xe5, "SPC" ), ( 0xe6, "APPEND" ), ( 0xe7, "OUTPUT" ),
-
-            ( 0xf0, "SAVE" ), ( 0xf1, "LOAD" ),
-            ( 0xf5, "MERGE" ), ( 0xf6, "COMSAVE" ), ( 0xf7, "COMLOAD" ),
-            ( 0xf8, "UTILITY" ), ( 0xf9, "MAXFILE" ),
-        ]),
-    ];
-
-    static ref ALIASES: [ ( &'static str, u8); 5 ] = [
-        ( "?", 0x91 ), ( "L?", 0x92 ),
-        ( "><", 0xc6 ), ( "=>", 0xc7 ), ( "=<", 0xc8 ),
+        HashMap::from(STATEMENTS_DISK),
     ];
 
     static ref FUNCS: [ HashMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
-        HashMap::from([
-            ( 0x80, "ABS" ), ( 0x81, "RND" ), ( 0x82, "SIN" ), ( 0x83, "COS" ),
-            ( 0x84, "TAN" ), ( 0x85, "ASN" ), ( 0x86, "ACS" ), ( 0x87, "ATN" ),
-            ( 0x88, "LOG" ), ( 0x89, "LGT" ), ( 0x8a, "LTW" ), ( 0x8b, "EXP" ),
-            ( 0x8c, "RAD" ), ( 0x8d, "DEG" ), ( 0x8e, "PI" ), ( 0x8f, "SQR" ),
-
-            ( 0x90, "INT" ), ( 0x91, "SGN" ), ( 0x92, "ASC" ), ( 0x93, "LEN" ),
-            ( 0x94, "VAL" ), ( 0x95, "PEEK" ), ( 0x96, "INP" ), ( 0x97, "FRE" ),
-            ( 0x98, "VPEEK" ), ( 0x99, "STICK" ), ( 0x9a, "STRIG" ),
-
-            ( 0xa0, "CHR$" ), ( 0xa1, "HEX$" ), ( 0xa2, "INKEY$" ), ( 0xa3, "LEFT$" ),
-            ( 0xa4, "RIGHT$" ), ( 0xa5, "MID$" ), ( 0xa6, "STR$" ), ( 0xa7, "TIME$" ),
-        ]),
+        HashMap::from(FUNCS_CARTRIDGE),
 
         // Disk BASIC v1.0p or v1.1p
-        HashMap::from([
-            ( 0x80, "ABS" ), ( 0x81, "RND" ), ( 0x82, "SIN" ), ( 0x83, "COS" ),
-            ( 0x84, "TAN" ), ( 0x85, "ASN" ), ( 0x86, "ACS" ), ( 0x87, "ATN" ),
-            ( 0x88, "LOG" ), ( 0x89, "LGT" ), ( 0x8a, "LTW" ), ( 0x8b, "EXP" ),
-            ( 0x8c, "RAD" ), ( 0x8d, "DEG" ), ( 0x8e, "PI" ), ( 0x8f, "SQR" ),
-
-            ( 0x90, "INT" ), ( 0x91, "SGN" ), ( 0x92, "ASC" ), ( 0x93, "LEN" ),
-            ( 0x94, "VAL" ), ( 0x95, "PEEK" ), ( 0x96, "INP" ), ( 0x97, "FRE" ),
-            ( 0x98, "VPEEK" ), ( 0x99, "STICK" ), ( 0x9a, "STRIG" ), ( 0x9b, "EOF" ),
-            ( 0x9c, "LOC" ), ( 0x9d, "LOF" ), ( 0x9e, "DSKF" ),
-
-            ( 0xa0, "CHR$" ), ( 0xa1, "HEX$" ), ( 0xa2, "INKEY$" ), ( 0xa3, "LEFT$" ),
-            ( 0xa4, "RIGHT$" ), ( 0xa5, "MID$" ), ( 0xa6, "STR$" ), ( 0xa7, "TIME$" ),
-        ]),
+        HashMap::from(FUNCS_DISK),
     ];
 }
 
