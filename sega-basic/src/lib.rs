@@ -341,9 +341,6 @@ impl SegaBasicLine {
         }
 
         flush_line(&mut content_bytes, &mut temp_line, cset);
-
-        // Newline
-        content_bytes.push(0x0d);
         content_bytes.shrink_to_fit();
 
         Self {
@@ -354,7 +351,9 @@ impl SegaBasicLine {
 
     /// Return the complete line as a vector of bytes
     pub fn complete_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::<u8>::with_capacity(self.content_bytes.len() + 5);
+        let mut bytes = Vec::<u8>::with_capacity(self.content_bytes.len() + 6);
+
+        // Content length
         bytes.push(self.content_bytes.len() as u8);
 
         // Line number
@@ -365,7 +364,11 @@ impl SegaBasicLine {
         bytes.push(0x00);
         bytes.push(0x00);
 
+        // Contents
         bytes.extend(self.content_bytes.clone());
+
+        // Newline
+        bytes.push(0x0d);
 
         bytes
     }
