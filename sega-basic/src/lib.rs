@@ -220,14 +220,24 @@ impl SegaBasicLine {
 
     /// Tokenise a line of Unicode text into bytes
     pub fn tokenise(line: &str, bver: SegaBasicVersion, cset: CharacterSet) -> Self {
-        let space_i = line.find(' ').unwrap();
-        let lineno = line[0..space_i].parse::<u16>().unwrap();
+        let mut j = 0;
+
+        // Read the line number
+        let mut lineno: u16 = 0;
+        while j < line.len() && line[j..].chars().next().unwrap().is_ascii_digit() {
+            lineno = (lineno * 10) + (line[j..].chars().next().unwrap() as u16 - '0' as u16);
+            j += 1;
+        }
+
+        // Optional spaces
+        while j < line.len() && line[j..].starts_with(' ') {
+            j += 1;
+        }
 
         let mut content_bytes = Vec::<u8>::with_capacity(line.len() / 5);
         let mut temp_line = String::new();
 
         let mut state = TokenState::Statement;
-        let mut j = space_i + 1;
         while j < line.len() {
             let c = line[j..].chars().next().unwrap();
 
