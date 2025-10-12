@@ -71,7 +71,7 @@ pub enum SegaBasicVersion {
 
     /// Sega SC-3000 Disk BASIC v1.0p or v1.1p (1984; floppy)
     ///
-    /// New statements and functions are highlighted in bold.
+    /// New or altered statements and functions are highlighted in bold.
     ///
     /// ## Statements
     /// |    | x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 | xA | xB | xC | xD | xE | xF |
