@@ -167,15 +167,21 @@ impl SegaBasicProgram {
 
     /// Add a line to the program
     pub fn add_line(&mut self, line: &SegaBasicLine) {
-        let index = self.lines.iter().position(|l| l.lineno >= line.lineno).unwrap_or(self.lines.len());
-        self.lines.insert(index, line.clone());
+        if let Some(index) = self.lines.iter().position(|l| l.lineno >= line.lineno) {
+            self.lines.insert(index, line.clone());
+        } else {
+            self.lines.push(line.clone());
+        }
     }
 
     /// Remove a line from the program
     ///
     /// Returns the line if it was found
     pub fn remove_line(&mut self, lineno: u16) -> Option<SegaBasicLine> {
-        self.lines.iter().position(|l| l.lineno == lineno).and_then(|index| Some(self.lines.remove(index)))
+        self.lines
+            .iter()
+            .position(|l| l.lineno == lineno)
+            .map(|index| self.lines.remove(index))
     }
 
     /// Sort the list of lines of the program by their line number
