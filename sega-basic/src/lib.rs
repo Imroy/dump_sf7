@@ -45,7 +45,7 @@ use sc3000_charset::{CharacterSet, SC3000String};
 
 /// The different versions of Sega BASIC
 #[repr(u8)]
-#[derive(Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 pub enum SegaBasicVersion {
     /// Sega SC-3000 BASIC Level 2 or 3 v1.0 (1983; cartridge)
     ///
