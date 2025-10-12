@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-getopts = "0.2"
+getopts = "0.2.24"
 sc3000-charset = { path = "../sc3000-charset" }
 sega-basic = { path = "../sega-basic" }
 sf7000-fs = { path = "../sf7000-fs" }
