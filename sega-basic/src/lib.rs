@@ -158,7 +158,7 @@ impl SegaBasicProgram {
 
         for line in &self.lines {
             output.push_str(&line.detokenise(self.bver, self.cset));
-            output.push('\x0a');
+            output.push('\n');
         }
         output.shrink_to_fit();
 
