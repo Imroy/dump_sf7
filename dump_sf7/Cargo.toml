@@ -1,10 +1,9 @@
 [package]
 name = "dump_sf7"
+description = "Sega SF-7000 floppy file dumper"
 version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 getopts = "0.2.24"

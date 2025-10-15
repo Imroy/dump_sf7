@@ -16,7 +16,7 @@
   along with this library.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-//! Sega BASIC routines
+//! Sega BASIC types capable of detokenisation and tokenisation
 //!
 //! ## Line format
 //!

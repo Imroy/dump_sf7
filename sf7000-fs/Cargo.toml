@@ -1,10 +1,9 @@
 [package]
 name = "sf7000-fs"
+description = "Sega SF-7000 Super Control Station disk/file types"
 version = "0.1.0"
 edition = "2024"
 license = "LGPL-3.0-or-later"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 sc3000-charset = { path = "../sc3000-charset" }
