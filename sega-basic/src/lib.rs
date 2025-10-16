@@ -287,10 +287,10 @@ impl SegaBasicLine {
                         }
                     }
 
-                    for length in FUNC_LENGTHS[bver as usize].iter().rev() {
+                    for length in FUNCTION_LENGTHS[bver as usize].iter().rev() {
                         if j + length < line.len()
                             && let Some(func_code) =
-                                FUNC_CODES[bver as usize].get(&line[j..j + length])
+                                FUNCTION_CODES[bver as usize].get(&line[j..j + length])
                         {
                             flush_line(&mut content_bytes, &mut temp_line, cset);
                             content_bytes.push(0x80);
@@ -436,7 +436,7 @@ impl SegaBasicLine {
                         continue;
                     }
 
-                    if let Some(funcname) = FUNCS[bver as usize].get(&b) {
+                    if let Some(funcname) = FUNCTIONS[bver as usize].get(&b) {
                         flush_bytes(&mut output, &mut temp_bytes, cset);
                         output.push_str(funcname);
 
@@ -552,7 +552,7 @@ static STATEMENTS_DISK: [(u8, &str); 107] = [
     (0xf8, "UTILITY"), (0xf9, "MAXFILE"),
 ];
 
-static FUNCS_CARTRIDGE: [(u8, &str); 35] = [
+static FUNCTIONS_CARTRIDGE: [(u8, &str); 35] = [
     (0x80, "ABS"), (0x81, "RND"), (0x82, "SIN"), (0x83, "COS"),
     (0x84, "TAN"), (0x85, "ASN"), (0x86, "ACS"), (0x87, "ATN"),
     (0x88, "LOG"), (0x89, "LGT"), (0x8a, "LTW"), (0x8b, "EXP"),
@@ -564,7 +564,7 @@ static FUNCS_CARTRIDGE: [(u8, &str); 35] = [
     (0xa4, "RIGHT$"), (0xa5, "MID$"), (0xa6, "STR$"), (0xa7, "TIME$"),
 ];
 
-static FUNCS_DISK: [(u8, &str); 39] = [
+static FUNCTIONS_DISK: [(u8, &str); 39] = [
     (0x80, "ABS"), (0x81, "RND"), (0x82, "SIN"), (0x83, "COS"),
     (0x84, "TAN"), (0x85, "ASN"), (0x86, "ACS"), (0x87, "ATN"),
     (0x88, "LOG"), (0x89, "LGT"), (0x8a, "LTW"), (0x8b, "EXP"),
@@ -621,22 +621,22 @@ lazy_static! {
             .collect(),
     ];
 
-    static ref FUNCS: [ BTreeMap<u8, &'static str>; 2 ] = [
+    static ref FUNCTIONS: [ BTreeMap<u8, &'static str>; 2 ] = [
         // BASIC Level 2 or 3
-        BTreeMap::from(FUNCS_CARTRIDGE),
+        BTreeMap::from(FUNCTIONS_CARTRIDGE),
 
         // Disk BASIC v1.0p or v1.1p
-        BTreeMap::from(FUNCS_DISK),
+        BTreeMap::from(FUNCTIONS_DISK),
     ];
-    static ref FUNC_LENGTHS: [ Vec<usize>; 2 ] = [
-        FUNCS_CARTRIDGE
+    static ref FUNCTION_LENGTHS: [ Vec<usize>; 2 ] = [
+        FUNCTIONS_CARTRIDGE
             .iter()
             .map(|(_, v)| v.len())
             .collect::<BTreeSet<usize>>()
             .iter()
             .copied()
             .collect(),
-        FUNCS_DISK
+        FUNCTIONS_DISK
             .iter()
             .map(|(_, v)| v.len())
             .collect::<BTreeSet<usize>>()
@@ -644,12 +644,12 @@ lazy_static! {
             .copied()
             .collect(),
     ];
-    static ref FUNC_CODES: [ HashMap<&'static str, u8>; 2 ] = [
-        FUNCS_CARTRIDGE
+    static ref FUNCTION_CODES: [ HashMap<&'static str, u8>; 2 ] = [
+        FUNCTIONS_CARTRIDGE
             .iter()
             .map(|(k, v)| (*v, *k))
             .collect(),
-        FUNCS_DISK
+        FUNCTIONS_DISK
             .iter()
             .map(|(k, v)| (*v, *k))
             .collect(),
