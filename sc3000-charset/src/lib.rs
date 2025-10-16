@@ -143,10 +143,10 @@ impl CharacterSet {
 #[derive(Clone, Debug)]
 pub struct SC3000String {
     /// Character set of this string
-    pub cset: CharacterSet,
+    cset: CharacterSet,
 
     /// The bytes containg the string data
-    pub bytes: Box<[u8]>,
+    bytes: Box<[u8]>,
 }
 
 impl SC3000String {
@@ -215,6 +215,16 @@ impl SC3000String {
             cset,
             bytes: bytes.into(),
         }
+    }
+
+    /// Return the character set of this string
+    pub fn charset(&self) -> CharacterSet {
+        self.cset
+    }
+
+    /// Return the raw bytes of this string
+    pub fn bytes(&self) -> Vec<u8> {
+        self.bytes.clone().into()
     }
 
     pub fn len(&self) -> usize {

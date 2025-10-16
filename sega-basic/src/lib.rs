@@ -671,6 +671,6 @@ fn flush_line(bytes: &mut Vec<u8>, temp_line: &mut String, cset: CharacterSet) {
     }
 
     //eprintln!("Adding line \"{}\" to bytes", temp_line);
-    bytes.extend(SC3000String::from_string(temp_line, cset).bytes);
+    bytes.extend(SC3000String::from_string(temp_line, cset).bytes());
     temp_line.clear();
 }
