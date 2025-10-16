@@ -61,3 +61,11 @@ fn fra_from_string() {
         &[0x46, 0x72, 0x61, 0x6e, 0xcb, 0x61, 0x69, 0x73]
     );
 }
+
+#[test]
+fn newline_from_string() {
+    assert_eq!(
+        SC3000String::from_string("\n", CharacterSet::Export).bytes(),
+        &[0x0d]
+    );
+}

@@ -74,3 +74,15 @@ fn fra_from_bytes() {
         "FranÇais"
     );
 }
+
+#[test]
+fn newline_from_bytes() {
+    assert_eq!(
+        SC3000String::from_bytes(
+            &[0x0d],
+            CharacterSet::Export
+        )
+        .to_string(),
+        "\n"
+    );
+}
