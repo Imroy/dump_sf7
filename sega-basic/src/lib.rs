@@ -591,7 +591,7 @@ fn flush_bytes(output: &mut String, temp_bytes: &mut Vec<u8>, cset: CharacterSet
         return;
     }
 
-    output.push_str(&SC3000String::new(temp_bytes.as_slice(), cset).to_string());
+    output.push_str(&SC3000String::from_bytes(temp_bytes.as_slice(), cset).to_string());
     temp_bytes.clear();
 }
 

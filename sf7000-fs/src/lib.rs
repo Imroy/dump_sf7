@@ -139,7 +139,7 @@ impl Disk {
 
     /// Disk name
     pub fn name(&self, cset: CharacterSet) -> String {
-        SC3000String::new(&self.data[DISK_NAME_START..DISK_NAME_END], cset).to_string()
+        SC3000String::from_bytes(&self.data[DISK_NAME_START..DISK_NAME_END], cset)
     }
 
     /// Initial Program Loader

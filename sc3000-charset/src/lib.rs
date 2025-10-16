@@ -142,7 +142,7 @@ pub struct SC3000String {
 
 impl SC3000String {
     /// Constructor from bytes and a [CharacterSet]
-    pub fn new(bytes: &[u8], cset: CharacterSet) -> Self {
+    pub fn from_bytes(bytes: &[u8], cset: CharacterSet) -> Self {
         Self {
             cset,
             bytes: bytes.into(),

@@ -196,7 +196,7 @@ fn main() -> std::io::Result<()> {
         if !raw {
             if file.file_type == FileType::Ascii {
                 print!("\t[Sega text]");
-                let sc3kstr = SC3000String::new(&contents, cset);
+                let sc3kstr = SC3000String::from_bytes(&contents, cset);
                 outfile.write_all(sc3kstr.to_string().as_bytes())?;
             } else if file.file_type == FileType::NonAscii
                 && (all_basic
