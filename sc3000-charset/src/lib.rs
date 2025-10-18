@@ -227,10 +227,12 @@ impl SC3000String {
         self.bytes.clone().into()
     }
 
+    /// Length of the string (in bytes)
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
 
+    /// Is the string empty?
     pub fn is_empty(&self) -> bool {
         self.bytes.len() == 0
     }
