@@ -113,6 +113,12 @@ pub const DIR_ENTRY_SIZE: usize = 16;
 /// Maxinum number of directory entries
 pub const MAX_DIR_ENTRIES: usize = (12 * SECTOR_SIZE) / DIR_ENTRY_SIZE;
 
+const FAT_LAST_CLUSTER_MASK: u8 = 0xf0;
+const FAT_LAST_CLUSTER_PREFIX: u8 = 0xc0;
+const FAT_LAST_CLUSTER_NUM_SECTORS_MASK: u8 = 0x0f;
+const FAT_RESERVED: u8 = 0xfe;
+const FAT_UNUSED: u8 = 0xff;
+
 /// SF-7000 disk image
 #[derive(Clone, Default, Debug)]
 pub struct Disk {
@@ -138,7 +144,7 @@ impl Disk {
     }
 
     /// Disk name
-    pub fn name(&self, cset: CharacterSet) -> String {
+    pub fn name(&self, cset: CharacterSet) -> SC3000String {
         SC3000String::from_bytes(&self.data[DISK_NAME_START..DISK_NAME_END], cset)
     }
 
@@ -153,30 +159,41 @@ impl Disk {
 
         for i in 0..MAX_DIR_ENTRIES {
             let entry_start = DISK_DIRECTORY_START + (i * DIR_ENTRY_SIZE);
-            let name = &self.data[entry_start..entry_start + 12];
-            if name[0] == b'\0' {
+            if self.data[entry_start..entry_start + 16] == [0_u8; 16] {
                 continue;
             }
 
-            let mut utf8_filename = SC3000String::new(name, cset).to_string();
-            let (mut name_part, mut ext_part) = utf8_filename.split_at(8);
-            while name_part.ends_with(' ') {
-                name_part = name_part.strip_suffix(' ').unwrap();
+            let name = self.data[entry_start..entry_start + 12].to_vec();
+
+            let (mut name_part, mut ext_part) = name.split_at(8);
+            while name_part.ends_with(b" ") {
+                name_part = name_part.strip_suffix(b" ").unwrap();
             }
-            while ext_part.ends_with(' ') {
-                ext_part = ext_part.strip_suffix(' ').unwrap();
+            while ext_part.ends_with(b" ") {
+                ext_part = ext_part.strip_suffix(b" ").unwrap();
             }
-            utf8_filename = name_part.to_owned() + ext_part;
-            utf8_filename = utf8_filename.replace('/', "--");
+
+            let mut name = name_part.to_vec();
+            name.extend(ext_part);
+            name = name
+                .iter()
+                .flat_map(|b| {
+                    if *b == b'/' {
+                        vec![b'-', b'-']
+                    } else {
+                        vec![*b]
+                    }
+                })
+                .collect();
+
+            let first_cluster = self.data[entry_start + 12];
+            let attr = self.data[entry_start + 13];
 
             files.push(File {
-                name: utf8_filename,
-                first_cluster: self.data[entry_start + 12],
-                file_type: (self.data[entry_start + 13] & FILE_ATTR_TYPE_MASK)
-                    .try_into()
-                    .unwrap(),
-                readonly: self.data[entry_start + 13] & FILE_ATTR_RO != 0,
-                disk: self,
+                name: SC3000String::from_bytes(&name, cset),
+                first_cluster,
+                file_type: (attr & FILE_ATTR_TYPE_MASK).try_into().unwrap(),
+                readonly: attr & FILE_ATTR_RO != 0,
             });
         }
 
@@ -187,13 +204,60 @@ impl Disk {
         let i = (sector_num as usize) * SECTOR_SIZE;
         self.data[i..i + SECTOR_SIZE].to_vec()
     }
+
+    fn read_cluster(&self, cluster_num: u8) -> Vec<u8> {
+        let mut dest = Vec::with_capacity(CLUSTER_SIZE);
+
+        for s in 0..SECTORS_PER_CLUSTER {
+            dest.append(
+                &mut self.read_sector((((cluster_num as usize) * SECTORS_PER_CLUSTER) + s) as u16),
+            );
+        }
+
+        dest
+    }
+
+    fn fat_entry(&self, cluster_num: u8) -> u8 {
+        self.data[DISK_FAT_START + cluster_num as usize]
+    }
+
+    /// Read file contents
+    pub fn read_file(&self, file: &File) -> Vec<u8> {
+        let mut contents = Vec::new();
+        let mut visited_clusters = HashSet::new();
+
+        let mut cluster_num = file.first_cluster;
+        while cluster_num < 160 {
+            if visited_clusters.contains(&cluster_num) {
+                eprintln!("FAT loop detected when reading file \"{}\".", file.name);
+                break;
+            }
+            visited_clusters.insert(cluster_num);
+
+            let fat_entry = self.fat_entry(cluster_num);
+            if fat_entry & FAT_LAST_CLUSTER_MASK == FAT_LAST_CLUSTER_PREFIX {
+                let num_sectors = fat_entry & FAT_LAST_CLUSTER_NUM_SECTORS_MASK;
+                let sector_num_start = (cluster_num as u16) * (SECTORS_PER_CLUSTER as u16);
+                for i in 0..num_sectors {
+                    contents.append(&mut self.read_sector(sector_num_start + i as u16));
+                }
+                break;
+            }
+
+            contents.append(&mut self.read_cluster(cluster_num));
+
+            cluster_num = fat_entry;
+        }
+
+        contents
+    }
 }
 
 /// SF-7000 file
 #[derive(Clone, Debug)]
-pub struct File<'a> {
+pub struct File {
     /// File name
-    pub name: String,
+    pub name: SC3000String,
 
     /// Index of first cluster
     first_cluster: u8,
@@ -203,63 +267,4 @@ pub struct File<'a> {
 
     /// Is the file read-only?
     pub readonly: bool,
-
-    /// Reference to disk structure this file is on
-    disk: &'a Disk,
-}
-
-const FAT_LAST_CLUSTER_MASK: u8 = 0xf0;
-const FAT_LAST_CLUSTER_PREFIX: u8 = 0xc0;
-const FAT_LAST_CLUSTER_NUM_SECTORS_MASK: u8 = 0x0f;
-const FAT_RESERVED: u8 = 0xfe;
-const FAT_UNUSED: u8 = 0xff;
-
-impl File<'_> {
-    fn read_cluster(&self, cluster_num: u8) -> Vec<u8> {
-        let mut dest = Vec::with_capacity(CLUSTER_SIZE);
-
-        for s in 0..SECTORS_PER_CLUSTER {
-            dest.append(
-                &mut self
-                    .disk
-                    .read_sector((((cluster_num as usize) * SECTORS_PER_CLUSTER) + s) as u16),
-            );
-        }
-
-        dest
-    }
-
-    fn fat_entry(&self, cluster_num: u8) -> u8 {
-        self.disk.data[DISK_FAT_START + cluster_num as usize]
-    }
-
-    /// Read contents
-    pub fn read(&self) -> Vec<u8> {
-        let mut contents = Vec::new();
-        let mut visited_clusters = HashSet::new();
-
-        let mut cluster_num = self.first_cluster;
-        while cluster_num < 160 {
-            if visited_clusters.contains(&cluster_num) {
-                eprintln!("FAT loop detected when reading file \"{}\".", self.name);
-                return contents;
-            }
-            visited_clusters.insert(cluster_num);
-
-            let fat_entry = self.fat_entry(cluster_num);
-            if fat_entry & FAT_LAST_CLUSTER_MASK == FAT_LAST_CLUSTER_PREFIX {
-                let num_sectors = fat_entry & FAT_LAST_CLUSTER_NUM_SECTORS_MASK;
-                let sector_num_start = (cluster_num as u16) * (SECTORS_PER_CLUSTER as u16);
-                for i in 0..num_sectors {
-                    contents.append(&mut self.disk.read_sector(sector_num_start + i as u16));
-                }
-            } else {
-                contents.append(&mut self.read_cluster(cluster_num));
-            }
-
-            cluster_num = fat_entry;
-        }
-
-        contents
-    }
 }
